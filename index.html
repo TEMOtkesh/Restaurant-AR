@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Burger Lions — AR Menu</title>
+    <title>3D AR Menu</title>
     <script>
-        // ── KILLSWITCH ────────────────────────────────────────────────
-        // One-shot cleanup for anyone who still has an old service worker
-        // or stale cache from before the auto-update flow shipped (bl-v41+).
-        // Unregisters every SW, deletes every cache, then reloads once.
-        // The localStorage flag stops it from running twice.
         (async () => {
             try {
                 const KILL_KEY = 'bl-killswitch-v41';
@@ -28,348 +23,153 @@
             } catch (_) {}
         })();
     </script>
-    <meta name="description" content="Burger Lions restaurant menu. View dishes in Augmented Reality before you order.">
-    <meta property="og:title" content="Burger Lions — AR Menu">
-    <meta property="og:description" content="Browse our menu and place dishes on your table in Augmented Reality.">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        :root { --t: 0.22s ease; }
-
-        [data-theme="night"] {
-            --bg:          #0f0b07;
-            --card:        #1d1610;
-            --card2:       #261d13;
-            --border:      rgba(242,181,53,0.22);
-            --text:        #ede6d4;
-            --dim:         #8a7a62;
-            --accent:      #f2b535;
-            --accent-text: #0f0b07;
-            --thumb-bg:    #0a0806;
-            --modal-bg:    #0f0b07;
-        }
-
-        [data-theme="day"] {
-            --bg:          #f2e8d2;
-            --card:        #f8f0de;
-            --card2:       #e8dcca;
-            --border:      rgba(155,98,8,0.22);
-            --text:        #1c1308;
-            --dim:         #6b5a3c;
-            --accent:      #c07808;
-            --accent-text: #ffffff;
-            --thumb-bg:    #c8b898;
-            --modal-bg:    #f2e8d2;
-        }
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         button { touch-action: manipulation; }
 
         body {
-            background: var(--bg);
-            color: var(--text);
+            background: #0f0b07;
+            color: #ede6d4;
             font-family: 'Nunito', sans-serif;
             min-height: 100vh;
-            padding: 0 16px 48px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            transition: background var(--t), color var(--t);
+            justify-content: center;
             overflow-x: hidden;
         }
 
-        .header {
+        #splash {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             width: 100%;
-            max-width: 450px;
-            text-align: center;
-            padding: 64px 0 24px;
+            padding: 40px 24px 60px;
+            min-height: 100vh;
         }
 
-        .header h1 {
+        .brand {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: clamp(2.8rem, 10vw, 3.8rem);
-            letter-spacing: 8px;
-            color: var(--accent);
+            font-size: clamp(3.2rem, 18vw, 7rem);
+            letter-spacing: 10px;
+            color: #f2b535;
             line-height: 1;
-            transition: color var(--t);
+            text-align: center;
         }
 
         .tagline {
-            font-size: 0.68rem;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: var(--dim);
-            margin-top: 6px;
-            font-weight: 700;
-            transition: color var(--t);
-        }
-
-        #theme-toggle, #lang-toggle {
-            position: fixed;
-            top: 14px;
-            z-index: 1000;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 50px;
-            padding: 8px 16px;
-            cursor: pointer;
-            color: var(--text);
-            font-family: 'Nunito', sans-serif;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: background var(--t), color var(--t), border-color var(--t);
-        }
-        #theme-toggle { right: 14px; }
-        #lang-toggle  { left: 14px; }
-        #theme-toggle:active, #lang-toggle:active { opacity: 0.65; }
-
-        .menu-list {
-            width: 100%;
-            max-width: 450px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .menu-item {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            display: grid;
-            grid-template-columns: 108px 1fr;
-            grid-template-rows: auto 1fr;
-            grid-template-areas: "name  right" "left  right";
-            padding: 12px;
-            column-gap: 12px;
-            row-gap: 6px;
-            transition: background var(--t), border-color var(--t);
-            contain: content;
-            touch-action: manipulation;
-        }
-        .menu-item:active { opacity: 0.75; transition: opacity 0.08s; }
-
-        .thumb-wrap {
-            position: relative;
-            width: 108px;
-            height: 100%;
-            min-height: 108px;
-            border-radius: 14px;
-            overflow: hidden;
-            background: var(--thumb-bg);
-            border: 1px solid var(--border);
-            transition: background var(--t), border-color var(--t);
-        }
-        .thumb-vignette {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: radial-gradient(ellipse at center, transparent 32%, var(--card) 100%);
-            opacity: 0.6;
-        }
-        .thumb-wrap model-viewer {
-            width: 100%;
-            height: 100%;
-            min-height: 108px;
-            background: transparent;
-            display: block;
-            touch-action: pan-y;
-        }
-        .thumb-wrap .thumb-img {
-            width: 100%;
-            height: 100%;
-            min-height: 108px;
-            object-fit: cover;
-            display: block;
-            cursor: pointer;
-        }
-
-        .item-left {
-            grid-area: left;
-        }
-
-        .item-right {
-            grid-area: right;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            user-select: none;
-        }
-
-        .item-actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 8px;
-            flex-shrink: 0;
-            min-height: 34px;
-        }
-
-        .item-name {
-            grid-area: name;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.15rem;
-            letter-spacing: 1px;
-            color: var(--accent);
-            line-height: 1.2;
-            transition: color var(--t);
-            overflow-wrap: break-word;
-            word-break: break-word;
-        }
-
-        .ar-btn {
-            background: var(--accent);
-            color: var(--accent-text);
-            border: none;
-            border-radius: 9px;
-            padding: 7px 10px;
-            font-size: 0.63rem;
-            font-weight: 800;
-            font-family: 'Nunito', sans-serif;
-            letter-spacing: 0.8px;
-            cursor: pointer;
-            white-space: nowrap;
-            text-transform: uppercase;
-            display: block;
-            width: 100%;
-            margin-top: 6px;
-            transition: background var(--t), opacity 0.15s;
-        }
-        .ar-btn:active { opacity: 0.7; transition: opacity 0.08s; }
-        .ar-btn:disabled { opacity: 0.45; cursor: wait; }
-
-        .ingredients {
-            flex: 1;
-            font-size: 0.72rem;
-            color: var(--dim);
-            line-height: 1.3;
-            transition: color var(--t);
-            overflow-wrap: break-word;
-        }
-
-        .price {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.15rem;
-            letter-spacing: 1px;
-            color: var(--accent);
-            transition: color var(--t);
-        }
-
-        .category-header {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.4rem;
+            font-size: 0.65rem;
             letter-spacing: 5px;
-            color: var(--accent);
-            padding: 20px 4px 8px;
-            border-bottom: 1px solid var(--border);
-            width: 100%;
-            max-width: 450px;
-            transition: color var(--t), border-color var(--t);
+            text-transform: uppercase;
+            color: #8a7a62;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 8px;
         }
 
-        /* ── Modal ── */
-        #modal {
-            position: fixed;
-            inset: 0;
-            background: var(--modal-bg);
-            z-index: 9999;
+        #start-btn {
+            background: #f2b535;
+            color: #0f0b07;
+            border: none;
+            border-radius: 16px;
+            padding: 22px 0;
+            width: 84%;
+            max-width: 340px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 44px;
+            transition: opacity 0.15s;
+        }
+        #start-btn:active { opacity: 0.7; transition: opacity 0.08s; }
+        #start-btn:disabled { opacity: 0.45; cursor: wait; }
+
+        .start-sub {
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            color: #8a7a62;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        #no-ar-msg {
+            color: #8a7a62;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 32px;
+            line-height: 1.5;
+            max-width: 280px;
+        }
+
+        /* iOS strip */
+        #ios-strip-wrap {
             display: none;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s, background var(--t);
-        }
-        #modal.active { opacity: 1; }
-
-        #modal-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: clamp(1.8rem, 6vw, 2.6rem);
-            letter-spacing: 4px;
-            color: var(--accent);
-            text-align: center;
             width: 100%;
-            padding: 0 24px;
-            margin-top: 56px;
-            line-height: 1.2;
-            transition: color var(--t);
+            margin-top: 36px;
         }
 
-        #modal-qty-wrap {
-            display: flex;
-            justify-content: center;
-            margin-top: 10px;
-        }
-        #modal-price {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: clamp(1.4rem, 5vw, 2rem);
+        .strip-label {
+            font-size: 0.6rem;
             letter-spacing: 3px;
-            color: var(--accent);
-            text-align: center;
-            margin-top: 6px;
-            transition: color var(--t);
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: var(--card2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 16px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-family: 'Nunito', sans-serif;
+            text-transform: uppercase;
+            color: #8a7a62;
             font-weight: 700;
-            transition: background var(--t), color var(--t);
+            margin-bottom: 10px;
         }
 
-        #modal-viewer {
-            width: 95vw;
-            height: 68vh;
-            background: transparent;
-            margin-top: 8px;
-        }
-
-        .tip {
-            margin-top: 4px;
-            color: var(--dim);
-            font-size: 0.82rem;
-            letter-spacing: 1px;
-            transition: color var(--t);
-        }
-
-        .nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: 1px solid var(--border);
-            background: rgba(0,0,0,0.5);
-            color: var(--text);
-            font-size: 1.4rem;
-            line-height: 1;
-            padding: 0;
-            cursor: pointer;
-            z-index: 10000;
+        #ios-strip {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: row;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 24px 8px;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
-        .nav-arrow:active { opacity: 0.65; }
-        .left-arrow  { left: 10px; }
-        .right-arrow { right: 10px; }
+        #ios-strip::-webkit-scrollbar { display: none; }
 
-        /* ── WebXR overlay ── */
+        .ios-item {
+            flex-shrink: 0;
+            background: rgba(242,181,53,0.08);
+            border: 1.5px solid rgba(242,181,53,0.18);
+            border-radius: 14px;
+            padding: 10px 14px;
+            cursor: pointer;
+            text-align: center;
+            min-width: 90px;
+            max-width: 120px;
+            transition: background 0.12s, border-color 0.12s;
+        }
+        .ios-item.selected {
+            background: rgba(242,181,53,0.22);
+            border-color: #f2b535;
+        }
+        .ios-item-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 0.88rem;
+            letter-spacing: 0.5px;
+            color: #f2b535;
+            line-height: 1.2;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .ios-item-price {
+            font-size: 0.68rem;
+            color: #8a7a62;
+            margin-top: 3px;
+        }
+
+        /* WebXR overlay — same as main app */
         #xr-overlay {
             display: none;
             position: fixed;
@@ -385,21 +185,21 @@
             z-index: 1;
         }
         #xr-place-hint {
-    position: absolute;
-    bottom: 120px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    background: rgba(0,0,0,0.65);
-    padding: 10px 20px;
-    border-radius: 20px;
-    white-space: normal;
-    text-align: center;
-    width: 80%;
-    max-width: 320px;
-}
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            background: rgba(0,0,0,0.65);
+            padding: 10px 20px;
+            border-radius: 20px;
+            white-space: normal;
+            text-align: center;
+            width: 80%;
+            max-width: 320px;
+        }
         #xr-nav-row {
             display: none;
             position: absolute;
@@ -460,31 +260,6 @@
         #xr-carousel-toggle  { top: 62px; left: 18px; display: none; }
         #xr-label-toggle     { top: 106px; left: 18px; display: none; }
         #xr-hide-ui.ui-hidden { opacity: 0.35; }
-        #xr-add-btn {
-            display: none;
-            pointer-events: all;
-            position: absolute;
-            z-index: 2;
-            bottom: 55px;
-            right: 18px;
-            background: rgba(0,0,0,0.45);
-            color: rgba(255,255,255,0.55);
-            border: 1.5px solid rgba(255,255,255,0.25);
-            border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-        }
-        #xr-add-btn.visible   { display: flex; }
-        #xr-add-btn.in-basket { background: rgba(240,192,64,0.92); color: #0d0d0d; border-color: transparent; }
-        #xr-hint-step {
-            font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
-            color: rgba(255,255,255,.5); margin-bottom: 3px;
-        }
-        #xr-hint-main { font-size: 14px; color: #fff; }
         #xr-scale-gauge {
             display: none;
             position: absolute;
@@ -527,423 +302,24 @@
             font-weight: 700;
             color: #fff;
         }
-
-        /* ── Category filter bar ── */
-        .cat-filter {
-            width: 100%;
-            max-width: 450px;
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 0 0 4px;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
-        }
-        .cat-filter::-webkit-scrollbar { display: none; }
-
-        .cat-pill {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 50px;
-            padding: 8px 14px;
-            font-family: 'Nunito', sans-serif;
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: var(--dim);
-            cursor: pointer;
-            white-space: nowrap;
-            flex-shrink: 0;
-            transition: background var(--t), border-color var(--t), color var(--t);
-            touch-action: manipulation;
-        }
-        .cat-pill:active { opacity: 0.7; transition: opacity 0.08s; }
-        .cat-pill.active {
-            background: var(--accent);
-            color: var(--accent-text);
-            border-color: var(--accent);
-        }
-
-        .cat-section { display: contents; }
-
-        /* ── Quantity stepper (add-to-basket control) ── */
-        .qty-ctrl { flex-shrink: 0; }
-
-        .qty-add-btn {
-            background: transparent;
-            color: var(--accent);
-            border: 1.5px solid var(--accent);
-            border-radius: 9px;
-            width: 34px;
-            height: 34px;
-            padding: 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background var(--t), color var(--t), border-color var(--t), opacity 0.15s;
-            touch-action: manipulation;
-        }
-        .qty-add-btn:active { opacity: 0.7; transition: opacity 0.08s; }
-
-        .qty-stepper {
-            display: none;
-            align-items: stretch;
-            border: 1.5px solid var(--accent);
-            border-radius: 9px;
-            overflow: hidden;
-            height: 34px;
-            box-sizing: border-box;
-            transition: border-color var(--t);
-        }
-        .qty-stepper.visible { display: flex; }
-
-        .qty-dec, .qty-inc {
-            background: transparent;
-            border: none;
-            color: var(--accent);
-            font-size: 1rem;
-            font-weight: 700;
-            padding: 0 10px;
-            cursor: pointer;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            touch-action: manipulation;
-            transition: background var(--t), color var(--t);
-            user-select: none;
-        }
-        .qty-dec { border-right: 1px solid var(--accent); }
-        .qty-inc { border-left:  1px solid var(--accent); }
-        .qty-dec:active, .qty-inc:active {
-            background: var(--accent);
-            color: var(--accent-text);
-            transition: none;
-        }
-
-        .qty-num {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1rem;
-            letter-spacing: 1px;
-            color: var(--accent);
-            min-width: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 2px;
-            user-select: none;
-            transition: color var(--t);
-        }
-
-        /* ── Basket bar (fixed bottom) ── */
-        #basket-bar {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: var(--accent);
-            color: var(--accent-text);
-            padding: 15px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 5000;
-            cursor: pointer;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background var(--t);
-            touch-action: manipulation;
-            font-family: 'Nunito', sans-serif;
-        }
-        #basket-bar.visible { transform: translateY(0); }
-        body.basket-bar-visible { padding-bottom: 80px; }
-        #basket-bar-count { font-size: 0.82rem; font-weight: 700; }
-        #basket-bar-delete {
-            background: transparent;
-            border: 1.5px solid var(--accent-text);
-            border-radius: 8px;
-            padding: 6px 10px;
-            cursor: pointer;
-            color: var(--accent-text);
-            display: flex;
-            align-items: center;
-            opacity: 0.75;
-            touch-action: manipulation;
-            transition: opacity 0.15s;
-            flex-shrink: 0;
-        }
-        #basket-bar-delete:active { opacity: 1; transition: none; }
-        #basket-bar-total {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.4rem;
-            letter-spacing: 2px;
-        }
-
-        /* ── Basket panel ── */
-        #basket-panel {
-            position: fixed;
-            inset: 0;
-            z-index: 9000;
-            display: none;
-            flex-direction: column;
-            background: var(--bg);
-            opacity: 0;
-            transition: opacity 0.22s ease, background var(--t);
-        }
-        #basket-panel.active { opacity: 1; }
-
-        .basket-header {
-            display: flex;
-            align-items: center;
-            padding: 20px 20px 14px;
-            border-bottom: 1px solid var(--border);
-            gap: 10px;
-            transition: border-color var(--t);
-        }
-        #basket-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.8rem;
-            letter-spacing: 4px;
-            color: var(--accent);
-            flex: 1;
-            transition: color var(--t);
-        }
-        #basket-clear {
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-family: 'Nunito', sans-serif;
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: var(--dim);
-            cursor: pointer;
-            touch-action: manipulation;
-            transition: border-color var(--t), color var(--t);
-        }
-        #basket-close {
-            background: var(--card2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 8px 14px;
-            font-family: 'Nunito', sans-serif;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text);
-            cursor: pointer;
-            touch-action: manipulation;
-            transition: background var(--t), color var(--t), border-color var(--t);
-        }
-        #basket-items {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px 20px;
-        }
-        .basket-empty {
-            color: var(--dim);
-            text-align: center;
-            padding: 48px 0;
-            font-size: 0.9rem;
-            transition: color var(--t);
-        }
-        .basket-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 13px 0;
-            border-bottom: 1px solid var(--border);
-            transition: border-color var(--t);
-        }
-        .basket-item-name {
-            flex: 1;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1rem;
-            letter-spacing: 1px;
-            color: var(--accent);
-            transition: color var(--t);
-        }
-        .basket-qty {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--card2);
-            border-radius: 8px;
-            padding: 3px 8px;
-            transition: background var(--t);
-        }
-        .qty-btn {
-            background: transparent;
-            border: none;
-            color: var(--text);
-            font-size: 1.1rem;
-            width: 26px;
-            height: 26px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: manipulation;
-            transition: color var(--t);
-        }
-        .qty-count {
-            font-weight: 700;
-            font-size: 0.88rem;
-            min-width: 18px;
-            text-align: center;
-            color: var(--text);
-            transition: color var(--t);
-        }
-        .basket-item-price {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1rem;
-            letter-spacing: 1px;
-            color: var(--text);
-            min-width: 56px;
-            text-align: right;
-            transition: color var(--t);
-        }
-.basket-footer {
-            padding: 16px 20px;
-            border-top: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: border-color var(--t);
-        }
-        #basket-total-label {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.2rem;
-            letter-spacing: 3px;
-            color: var(--dim);
-            transition: color var(--t);
-        }
-        #basket-total {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2rem;
-            letter-spacing: 3px;
-            color: var(--accent);
-            transition: color var(--t);
-        }
-
-        /* ── Responsive: desktop grid layout ── */
-        @media (min-width: 640px) {
-            body { padding: 0 32px 64px; }
-
-            .header, .cat-filter { max-width: 880px; }
-            .cat-filter { justify-content: center; }
-
-            .menu-list {
-                max-width: 880px;
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 16px;
-                align-items: start;
-            }
-
-            .category-header {
-                max-width: none;
-                grid-column: 1 / -1;
-                padding: 24px 2px 10px;
-            }
-
-            .menu-item {
-                display: flex;
-                flex-direction: column;
-                padding: 0;
-                overflow: hidden;
-            }
-
-            .item-left  { order: 1; width: 100%; }
-            .item-name  { order: 2; padding: 10px 14px 4px; }
-            .item-right { order: 3; padding: 4px 14px 14px; }
-
-            .item-left .thumb-wrap {
-                width: 100%;
-                height: 220px;
-                min-height: unset;
-                border-radius: 16px 16px 0 0;
-                border-bottom: none;
-            }
-
-        }
-
-        @media (min-width: 1100px) {
-            .header, .cat-filter { max-width: 1160px; }
-
-            .menu-list {
-                max-width: 1160px;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 20px;
-            }
-
-            .item-left .thumb-wrap { height: 240px; }
-        }
-
-        /* ── Modal AR button ── */
-        #modal-ar-btn {
-            display: none;
-            background: var(--accent);
-            color: var(--accent-text);
-            border: none;
-            border-radius: 12px;
-            padding: 14px 0;
-            width: 80%;
-            max-width: 320px;
-            font-family: 'Nunito', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            cursor: pointer;
-            margin-top: 14px;
-            transition: background var(--t), opacity 0.15s;
-            touch-action: manipulation;
-        }
-        #modal-ar-btn:active  { opacity: 0.7; transition: opacity 0.08s; }
-        #modal-ar-btn:disabled { opacity: 0.45; cursor: wait; }
-
+        #xr-hint-step { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 3px; }
+        #xr-hint-main { font-size: 14px; color: #fff; }
     </style>
 </head>
 <body>
 
-    <button id="theme-toggle" aria-label="Toggle theme">Day</button>
-    <button id="lang-toggle" aria-label="Toggle language">KA</button>
+    <div id="splash">
+        <div class="brand">3D AR Menu</div>
+        <div class="tagline">See it before you order</div>
 
-    <div class="header">
-        <h1>Burger Lions</h1>
-        <div class="tagline" id="tagline">Taste the Wild</div>
-    </div>
-
-    <div id="cat-filter" class="cat-filter"></div>
-
-    <div class="menu-list" id="menu-list"></div>
-
-    <div id="modal">
-        <button class="nav-arrow left-arrow"  id="modal-prev">&#10094;</button>
-        <button class="nav-arrow right-arrow" id="modal-next">&#10095;</button>
-        <button class="close-btn" id="close-btn">Close</button>
-        <div id="modal-title"></div>
-        <div style="position:relative;display:inline-block;width:95vw;">
-            <model-viewer id="modal-viewer"
-                camera-controls
-                shadow-intensity="1"
-                min-camera-orbit="auto 0deg auto"
-                max-camera-orbit="auto 85deg auto">
-            </model-viewer>
-            <div style="position:absolute;inset:0;pointer-events:none;border-radius:inherit;
-                        background:radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,0.55) 100%);">
-            </div>
+        <div id="ios-strip-wrap">
+            <div class="strip-label">Choose a dish</div>
+            <div id="ios-strip"></div>
         </div>
-        <div id="modal-price"></div>
-        <div id="modal-qty-wrap">
-            <div class="qty-ctrl" id="modal-qty-ctrl" data-idx="0">
-                <button class="qty-add-btn" aria-label="Add to basket"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></button>
-                <div class="qty-stepper">
-                    <button class="qty-dec">&#8722;</button>
-                    <span class="qty-num">1</span>
-                    <button class="qty-inc">+</button>
-                </div>
-            </div>
-        </div>
-        <button id="modal-ar-btn"></button>
-        <p class="tip" id="modal-tip">Drag to rotate</p>
+
+        <button id="start-btn" disabled>Loading…</button>
+        <div class="start-sub" id="start-sub">tap surface to place &middot; swipe to browse all dishes</div>
+        <div id="no-ar-msg" style="display:none">AR is not available on this device.<br>Open this link on an Android or iPhone.</div>
     </div>
 
     <div id="xr-overlay">
@@ -958,7 +334,7 @@
         </div>
         <div id="xr-move-hint">Drag to move &middot; Twist two fingers to rotate</div>
         <button id="xr-exit">Exit AR</button>
-        <button id="xr-place-again"></button>
+        <button id="xr-place-again">Place Again</button>
         <button id="xr-carousel-toggle"></button>
         <button id="xr-label-toggle"></button>
         <button id="xr-hide-ui">HIDE UI</button>
@@ -969,37 +345,9 @@
             </div>
             <span id="xr-scale-pct">100%</span>
         </div>
-        <button id="xr-add-btn" aria-label="Add to basket">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-        </button>
     </div>
 
-
-    <!-- Basket bar -->
-    <div id="basket-bar">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-right:8px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-        <span id="basket-bar-count"></span>
-        <span id="basket-bar-total"></span>
-        <button id="basket-bar-delete" aria-label="Clear basket">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        </button>
-    </div>
-
-    <!-- Basket panel -->
-    <div id="basket-panel">
-        <div class="basket-header">
-            <span id="basket-title">Basket</span>
-            <button id="basket-clear">Clear</button>
-            <button id="basket-close">Close</button>
-        </div>
-        <div id="basket-items"></div>
-        <div class="basket-footer">
-            <span id="basket-total-label">Total</span>
-            <span id="basket-total">0 ₾</span>
-        </div>
-    </div>
-
-    <!-- WebXR — Three.js loaded lazily on first AR tap, not on page load -->
+    <!-- WebXR — Three.js loaded lazily on first AR tap -->
     <script>
     (function () {
         let THREE, GLTFLoader, GLTFExporter;
@@ -1030,7 +378,6 @@
             right:    { x:  0.14, z: -0.08, s: 0.85, opacity: 0.65 },
             farRight: { x:  0.35, z: -0.12, s: 0.85, opacity: 0    },
         };
-        // Returns target opacity for a role based on current view mode
         const _roleOp = role => _xrSingleItem ? (role === 'center' ? 1.0 : 0) : CFG[role].opacity;
 
         const INIT_ROLES    = ['left', 'center', 'right', 'farRight'];
@@ -1047,6 +394,19 @@
         let _xrUIHidden = false;
         let _lastTouchStart = null;
         const _LOG_MIN = Math.log(SCALE_MIN), _LOG_MAX = Math.log(SCALE_MAX);
+
+        const UI = {
+            en: {
+                hintStep1: 'STEP 1 OF 2', hintScan: 'Move slowly over a table or floor',
+                hintStep2: 'STEP 2 OF 2', hintTap: 'Tap to place your dish',
+                moveHint: 'Drag to move · Pinch to scale',
+                exitAR: 'Exit AR', placeAgain: 'Place Again',
+                carouselBtn: 'CAROUSEL', singleBtn: 'SINGLE ITEM',
+                onTable: 'ON TABLE', floating: 'FLOATING',
+                hideUI: 'HIDE UI', showUI: 'SHOW UI',
+            }
+        };
+
         function _showScaleGauge() {
             if (_xrUIHidden) return;
             const s = carouselRoot.scale.x;
@@ -1064,7 +424,6 @@
             }, delay);
         }
 
-        // ── AR label (museum card) ────────────────────────────────────
         function _rrPath(ctx, x, y, w, h, r) {
             ctx.beginPath();
             ctx.moveTo(x + r, y);
@@ -1097,37 +456,28 @@
             if (!labelCtx) return;
             const ctx = labelCtx;
             const W = labelCanvas.width, H = labelCanvas.height;
-            const lang = window.__lang || 'en';
-            const name = (lang === 'ka' && item.name_ka)        ? item.name_ka        : item.name;
-            const desc = (lang === 'ka' && item.description_ka) ? item.description_ka : item.description;
-
+            const name = item.name;
+            const desc = item.description;
             ctx.clearRect(0, 0, W, H);
-
             ctx.fillStyle = 'rgba(8, 8, 8, 0.92)';
             _rrPath(ctx, 6, 6, W - 12, H - 12, 20);
             ctx.fill();
-
             ctx.strokeStyle = 'rgba(240, 192, 64, 0.7)';
             ctx.lineWidth = 3;
             _rrPath(ctx, 6, 6, W - 12, H - 12, 20);
             ctx.stroke();
-
             ctx.fillStyle = '#f0c040';
             ctx.font = 'bold 44px Arial, sans-serif';
             ctx.fillText(name, 28, 52, W - 56);
-
             ctx.strokeStyle = 'rgba(240, 192, 64, 0.30)';
             ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(28, 66); ctx.lineTo(W - 28, 66); ctx.stroke();
-
             ctx.fillStyle = '#c0c0c0';
             ctx.font = '22px Arial, sans-serif';
             _wrapText(ctx, desc, 28, 88, W - 56, 28, 3);
-
             ctx.fillStyle = '#f0c040';
             ctx.font = 'bold 36px Arial, sans-serif';
             ctx.fillText(item.price, 28, H - 20);
-
             if (labelTexture) labelTexture.needsUpdate = true;
         }
 
@@ -1149,16 +499,11 @@
 
         function updateLabelTransform() {
             if (!labelMesh) return;
-            if (labelMode === 'float') {
-                labelMesh.position.set(0, 0.22, 0.015);
-            }
-            // surface rotation updated per-frame in render loop
+            if (labelMode === 'float') labelMesh.position.set(0, 0.22, 0.015);
             const btn = document.getElementById('xr-label-toggle');
-            const u = UI[window.__lang || 'en'];
-            if (btn) btn.textContent = labelMode === 'float' ? u.onTable : u.floating;
+            if (btn) btn.textContent = labelMode === 'float' ? UI.en.onTable : UI.en.floating;
         }
 
-        // ── Models ────────────────────────────────────────────────────
         function preloadModels() {
             const paths = [...new Set(MENU.map(m => m.model).filter(Boolean))];
             return Promise.allSettled(paths.map(p => {
@@ -1168,14 +513,11 @@
                     loader.load(p, gltf => { modelGLTFs[p] = gltf; res(); }, undefined, rej)
                 );
                 return _modelLoadPromises[p];
-            })).then(results => {
-                const failed = results.filter(r => r.status === 'rejected');
-                if (failed.length) console.warn('Model load failures:', failed.map(f => f.reason));
-            });
+            }));
         }
 
         function cloneModel(menuIdx) {
-            const gltf = modelGLTFs[MENU[menuIdx].model || 'food.glb'];
+            const gltf = modelGLTFs[MENU[menuIdx].model];
             if (!gltf) return null;
             const obj = gltf.scene.clone(true);
             obj.traverse(n => { if (n.isMesh && n.material) n.material = n.material.clone(); });
@@ -1187,11 +529,8 @@
             if (old) slotGroups[slotIdx].remove(old);
             const obj = cloneModel(menuIdx);
             if (obj) {
-                // Trust the GLB's own scale (1 unit = 1 metre).
-                // ar_scale is an optional per-item override (default 1.0 = no change).
                 const arScale = MENU[menuIdx].ar_scale || 1.0;
                 if (arScale !== 1.0) obj.scale.setScalar(arScale);
-                // Seat the model: bottom of bounding box sits at y=0
                 const seated = new THREE.Box3().setFromObject(obj);
                 if (isFinite(seated.min.y)) obj.position.y = -seated.min.y;
                 slotGroups[slotIdx].add(obj);
@@ -1211,10 +550,8 @@
                 slotGroups[i].rotation.set(0, 0, 0);
                 setOpacity(i, opacities[i]);
             });
-            _syncXRAddBtn();
         }
 
-        // ── Opacity ───────────────────────────────────────────────────
         function setOpacity(idx, opacity) {
             const obj = meshObjs[idx];
             if (!obj) return;
@@ -1237,7 +574,6 @@
             })(performance.now());
         }
 
-        // ── Slot animation ────────────────────────────────────────────
         function snapSlot(idx, role) {
             slotGroups[idx].position.x = CFG[role].x;
             slotGroups[idx].position.z = CFG[role].z;
@@ -1259,7 +595,6 @@
             })(performance.now());
         }
 
-        // ── Navigation ────────────────────────────────────────────────
         function goNext() {
             if (isAnimating) return;
             isAnimating = true;
@@ -1278,11 +613,6 @@
                 hiddenSide = 'farLeft'; currentCenterMenu = mod(currentCenterMenu + 1);
                 isAnimating = false;
                 if (labelMesh && labelMesh.visible) drawLabel(MENU[currentCenterMenu]);
-                _syncXRAddBtn();
-                const _nItem = MENU[currentCenterMenu];
-                const _nIdx  = (_nItem && window.__menuItems) ? window.__menuItems.indexOf(_nItem) : -1;
-                if (_nIdx >= 0) window._arViewedItems?.add(_nIdx);
-                window.track?.('xr_nav', _nIdx >= 0 ? _nIdx : null, { direction: 'next' });
             }, DUR + 10);
         }
 
@@ -1304,47 +634,28 @@
                 hiddenSide = 'farRight'; currentCenterMenu = mod(currentCenterMenu - 1);
                 isAnimating = false;
                 if (labelMesh && labelMesh.visible) drawLabel(MENU[currentCenterMenu]);
-                _syncXRAddBtn();
-                const _pItem = MENU[currentCenterMenu];
-                const _pIdx  = (_pItem && window.__menuItems) ? window.__menuItems.indexOf(_pItem) : -1;
-                if (_pIdx >= 0) window._arViewedItems?.add(_pIdx);
-                window.track?.('xr_nav', _pIdx >= 0 ? _pIdx : null, { direction: 'prev' });
             }, DUR + 10);
         }
 
-        // ── Scan/tap hint state ───────────────────────────────────────
         function _updateScanHint(found) {
             const stepEl = document.getElementById('xr-hint-step');
             const mainEl = document.getElementById('xr-hint-main');
             if (!stepEl) return;
-            const u = UI[window.__lang || 'en'];
-            stepEl.textContent = found ? u.hintStep2 : u.hintStep1;
-            mainEl.textContent = found ? u.hintTap   : u.hintScan;
-        }
-
-        // ── Add-btn basket state sync ─────────────────────────────────
-        function _syncXRAddBtn() {
-            const btn = document.getElementById('xr-add-btn');
-            if (!btn || !window.__menuItems) return;
-            const item = MENU.length ? MENU[currentCenterMenu] : null;
-            const idx  = item ? window.__menuItems.indexOf(item) : -1;
-            const inBasket = idx >= 0 && window._basket && window._basket.has(String(idx));
-            btn.classList.toggle('in-basket', inBasket);
+            stepEl.textContent = found ? UI.en.hintStep2 : UI.en.hintStep1;
+            mainEl.textContent = found ? UI.en.hintTap   : UI.en.hintScan;
         }
 
         function _applyUIHidden(hidden) {
             _xrUIHidden = hidden;
-            const u = UI[window.__lang || 'en'];
             const hideBtn = document.getElementById('xr-hide-ui');
             if (!hideBtn) return;
-            // Hidden: collapse info clutter; keep exit, place-again, arrows, cart visible
             if (hidden) {
                 document.getElementById('xr-move-hint').style.display      = 'none';
                 document.getElementById('xr-carousel-toggle').style.display = 'none';
                 document.getElementById('xr-label-toggle').style.display    = 'none';
                 document.getElementById('xr-scale-gauge').style.display     = 'none';
                 if (labelMesh) labelMesh.visible = false;
-                hideBtn.textContent = u.showUI;
+                hideBtn.textContent = UI.en.showUI;
             } else {
                 if (placed) {
                     document.getElementById('xr-move-hint').style.display      = 'block';
@@ -1352,11 +663,10 @@
                     document.getElementById('xr-label-toggle').style.display    = 'block';
                     if (labelMesh) { drawLabel(MENU[currentCenterMenu]); updateLabelTransform(); labelMesh.visible = true; }
                 }
-                hideBtn.textContent = u.hideUI;
+                hideBtn.textContent = UI.en.hideUI;
             }
         }
 
-        // ── Placement ─────────────────────────────────────────────────
         function onSelect() {
             if (_ignoreNextSelect) { _ignoreNextSelect = false; return; }
             if (placed || !reticle.visible) return;
@@ -1365,9 +675,6 @@
             carouselRoot.visible = true;
             reticle.visible      = false;
             placed               = true;
-            const _plItem = MENU[currentCenterMenu];
-            const _plIdx  = (_plItem && window.__menuItems) ? window.__menuItems.indexOf(_plItem) : -1;
-            window.track?.('ar_placed', _plIdx >= 0 ? _plIdx : null);
             gestureLayer.style.display = 'block';
             document.getElementById('xr-place-hint').style.display      = 'none';
             document.getElementById('xr-place-again').style.display     = 'block';
@@ -1376,8 +683,7 @@
             document.getElementById('xr-carousel-toggle').style.display  = 'block';
             if (labelMesh) { drawLabel(MENU[currentCenterMenu]); updateLabelTransform(); labelMesh.visible = true; }
             document.getElementById('xr-label-toggle').style.display = 'block';
-            const _hBtn = document.getElementById('xr-hide-ui');
-            _hBtn.textContent = UI[window.__lang || 'en'].hideUI;
+            document.getElementById('xr-hide-ui').textContent = UI.en.hideUI;
         }
 
         function _resetPlacement() {
@@ -1402,10 +708,9 @@
             _lastTouchStart = null;
             const _hBtnR = document.getElementById('xr-hide-ui');
             _hBtnR.classList.remove('ui-hidden');
-            _hBtnR.textContent = UI[window.__lang || 'en'].hideUI;
+            _hBtnR.textContent = UI.en.hideUI;
         }
 
-        // ── Loader bootstrap (shared between bg preload and _setup) ───
         let _setupDone = false;
         let _loaderPromise = null;
         const _modelLoadPromises = {};
@@ -1420,19 +725,13 @@
                 ]);
             }
             const [threeNS, loaderMod, exporterMod] = await _loaderPromise;
-            if (loader) return; // concurrent call already finished
+            if (loader) return;
             THREE        = threeNS;
             GLTFLoader   = loaderMod.GLTFLoader;
             GLTFExporter = exporterMod.GLTFExporter;
             loader       = new GLTFLoader();
         }
 
-        // ── iOS y-offset correction ───────────────────────────────────────────
-        // Quick Look places the GLB's raw origin on the detected surface.
-        // Most 3D tools export with origin at the model centre, so half the model
-        // sinks below the table.  After backgroundPreload decodes every GLB with
-        // Three.js we re-export a seated version (same fix as Android's setSlotModel)
-        // and swap the launcher's src to the corrected blob.
         const _iosSeatedBlobs = {};
         let _resolvePreload;
         const _preloadDone = new Promise(res => { _resolvePreload = res; });
@@ -1443,7 +742,6 @@
             const scale    = arScale || 1.0;
             const cacheKey = scale !== 1.0 ? `${modelUrl}::${scale}` : modelUrl;
             if (_iosSeatedBlobs[cacheKey]) return _iosSeatedBlobs[cacheKey];
-            // Clone, apply ar_scale, seat so bottom sits at y=0
             const root = gltf.scene.clone(true);
             root.traverse(n => { if (n.isMesh && n.material) n.material = n.material.clone(); });
             if (scale !== 1.0) root.scale.setScalar(scale);
@@ -1469,7 +767,6 @@
             });
         }
 
-        // ── One-time init — deferred until first AR tap ───────────────
         async function _setup() {
             if (_setupDone) return;
             _setupDone = true;
@@ -1515,9 +812,6 @@
             gestureLayer = document.getElementById('xr-gesture-layer');
             xrOverlay    = document.getElementById('xr-overlay');
 
-            // Touch gestures on the gesture layer inside dom-overlay.
-            // Canvas touch events are consumed by the XR runtime during a session;
-            // dom-overlay elements receive normal HTML touch events instead.
             gestureLayer.addEventListener('touchstart', e => {
                 _rotVelocity = 0;
                 for (const t of e.changedTouches)
@@ -1576,8 +870,7 @@
             renderer.xr.addEventListener('sessionstart', async () => {
                 _reticleWasVisible = false;
                 _updateScanHint(false);
-                const _hBtnStart = document.getElementById('xr-hide-ui');
-                if (_hBtnStart) _hBtnStart.textContent = UI[window.__lang || 'en'].hideUI;
+                document.getElementById('xr-hide-ui').textContent = UI.en.hideUI;
                 try {
                     const session     = renderer.xr.getSession();
                     const viewerSpace = await session.requestReferenceSpace('viewer');
@@ -1590,9 +883,9 @@
                 xrSession = null; xrStarting = false;
                 carouselRoot.visible = false; reticle.visible = false;
                 if (labelMesh) labelMesh.visible = false;
-                xrCanvas.style.display       = 'none';
-                xrOverlay.style.display      = 'none';
-                gestureLayer.style.display   = 'none';
+                xrCanvas.style.display  = 'none';
+                xrOverlay.style.display = 'none';
+                gestureLayer.style.display = 'none';
                 document.getElementById('xr-place-hint').style.display     = 'block';
                 document.getElementById('xr-nav-row').style.display         = 'none';
                 document.getElementById('xr-move-hint').style.display       = 'none';
@@ -1604,7 +897,6 @@
                 _hBtnS.classList.remove('ui-hidden');
                 activeTouches.clear();
                 _rotVelocity = 0;
-                _xrAddedKeys.clear();
                 _pinchDist0 = null; _pinchScale0 = null;
                 if (_scaleHideTimer) { clearTimeout(_scaleHideTimer); _scaleHideTimer = null; }
                 document.getElementById('xr-scale-gauge').style.display = 'none';
@@ -1612,7 +904,10 @@
                 slotOf = { left: 0, center: 1, right: 2, hidden: 3 };
                 hiddenSide = 'farRight'; isAnimating = false;
                 initSlots();
-                document.dispatchEvent(new CustomEvent('xr-session-end'));
+                // Show splash again so user can re-enter AR
+                document.getElementById('splash').style.display = 'flex';
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('start-btn').textContent = 'TAP TO START AR';
             });
 
             renderer.setAnimationLoop((time, frame) => {
@@ -1632,7 +927,6 @@
                     slotGroups[slotOf.center].rotation.y += _rotVelocity;
                     _rotVelocity *= INERTIA_DAMP;
                 }
-                // Always sync label scale regardless of visibility
                 if (labelMesh) {
                     const _cs = carouselRoot.scale.x;
                     labelMesh.scale.setScalar(_cs < 1 ? 1 / _cs : 1);
@@ -1662,8 +956,6 @@
                         );
                         carouselRoot.worldToLocal(_lp);
                         labelMesh.position.copy(_lp);
-                        // flatten first (Rx -90°), then spin around WORLD Y — quaternion
-                        // composition avoids Euler-order tilt on second axis
                         const _qFl = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI/2);
                         const _qYw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), _ang);
                         const _wQ  = _qYw.clone().multiply(_qFl);
@@ -1687,10 +979,9 @@
             document.getElementById('xr-hide-ui').addEventListener('click', () => _applyUIHidden(!_xrUIHidden));
 
             function updateXRToggleBtn() {
-    const u = UI[window.__lang || 'en'];
-    document.getElementById('xr-carousel-toggle').textContent =
-        _xrSingleItem ? u.carouselBtn : u.singleBtn;
-}
+                document.getElementById('xr-carousel-toggle').textContent =
+                    _xrSingleItem ? UI.en.carouselBtn : UI.en.singleBtn;
+            }
             updateXRToggleBtn();
             updateLabelTransform();
 
@@ -1706,14 +997,11 @@
             });
         }
 
-        // ── Public API ────────────────────────────────────────────────
         window.XR = {
             getCurrentItem() { return MENU.length ? MENU[currentCenterMenu] : null; },
             refreshHint() { if (_setupDone) _updateScanHint(_reticleWasVisible); },
             _preloadDone,
             getSeatedBlob: _makeSeatedBlob,
-            // Called right after menu renders — imports Three.js + decodes all models
-            // in the background so the first AR tap finds everything ready.
             async backgroundPreload(items) {
                 MENU = items; N = MENU.length;
                 try {
@@ -1731,9 +1019,7 @@
                 currentCenterMenu = Math.max(0, Math.min(itemIndex, N - 1));
 
                 await _setup();
-
                 await preloadModels();
-
                 initSlots();
 
                 let _xrReq;
@@ -1743,21 +1029,18 @@
                         optionalFeatures: ['dom-overlay'],
                         domOverlay: { root: xrOverlay }
                     });
-                    // ARCore needs recovery time after a previous session ends.
-                    // requestSession can hang indefinitely — race it against an 8s timeout.
                     const _xrTimeout = new Promise((_, rej) =>
                         setTimeout(() => rej(new Error('xr-timeout')), 8000)
                     );
                     xrSession = await Promise.race([_xrReq, _xrTimeout]);
                 } catch (e) {
                     console.error('XR session failed:', e);
-                    // If the timed-out requestSession eventually resolves, end the ghost session.
                     if (_xrReq) _xrReq.then(s => s.end()).catch(() => {});
-                    // Clear cache so next page load re-runs detection fresh
                     localStorage.removeItem('bl-ar-cap');
                     localStorage.removeItem('bl-ar-cap-ts');
                     xrStarting = false;
-                    document.dispatchEvent(new CustomEvent('xr-session-end', { detail: { fallbackIdx: itemIndex } }));
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('start-btn').textContent = 'TAP TO START AR';
                     return;
                 }
 
@@ -1767,397 +1050,30 @@
                 localStorage.setItem('bl-ar-cap-ts', String(Date.now()));
                 xrCanvas.style.display  = 'block';
                 xrOverlay.style.display = 'block';
-                document.dispatchEvent(new CustomEvent('xr-session-start'));
+                document.getElementById('splash').style.display = 'none';
             }
         };
     })();
     </script>
 
-    <!-- ── Catalog logic ──────────────────────────────────────────────── -->
+    <!-- App logic -->
     <script>
-        // ── Analytics ─────────────────────────────────────────────────
-        const _sbClient = (function() {
-            try { return window.supabase?.createClient(
-                'https://xctoxhaahxtcicfgnmme.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjdG94aGFhaHh0Y2ljZmdubW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NDMyMDEsImV4cCI6MjA5NTMxOTIwMX0.VA2tQL6WT96ifBjON4NLaJa0BbzBGI0ipD7iB5fHjnQ'
-            ); } catch(e) { return null; }
+    (function() {
+        const SUPABASE_URL  = 'https://xctoxhaahxtcicfgnmme.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjdG94aGFhaHh0Y2ljZmdubW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NDMyMDEsImV4cCI6MjA5NTMxOTIwMX0.VA2tQL6WT96ifBjON4NLaJa0BbzBGI0ipD7iB5fHjnQ';
+
+        const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        const sbClient = (() => {
+            try { return window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON); } catch { return null; }
         })();
-        let _sid = sessionStorage.getItem('bl-sid');
-        if (!_sid) {
-            _sid = (crypto?.randomUUID
-                ? crypto.randomUUID()
-                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                    const r = Math.random() * 16 | 0;
-                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                  }));
-            sessionStorage.setItem('bl-sid', _sid);
-        }
-        // Persistent visitor ID — survives across sessions on same device
-        let _vid = localStorage.getItem('bl-vid');
-        const _isReturnVisitor = !!_vid;
-        if (!_vid) {
-            _vid = (crypto?.randomUUID
-                ? crypto.randomUUID()
-                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                    const r = Math.random() * 16 | 0;
-                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                  }));
-            localStorage.setItem('bl-vid', _vid);
-        }
-        function track(event, itemIndex, extra) {
-            if (!_sbClient) return;
-            const item = (itemIndex != null && window.__menuItems) ? window.__menuItems[itemIndex] : null;
-            _sbClient.from('events').insert({
-                session_id:  _sid,
-                visitor_id:  _vid,
-                event,
-                item_index:  itemIndex != null ? itemIndex : null,
-                item_name:   item ? item.name : null,
-                category:    item ? item.category : null,
-                lang:        window.__lang || localStorage.getItem('bl-lang') || 'en',
-                ar_cap:      window.__arCap || localStorage.getItem('bl-ar-cap') || null,
-                extra:       extra || null,
-            }).then(() => {}).catch(() => {});
-        }
-        window.track = track;
-        const _arViewedItems    = new Set();
-        const _modalViewedItems = new Set();
-        window._arViewedItems   = _arViewedItems;
-        let   _modalOpenTime    = null;
-        let   _arStartTime      = null;
-        // First interaction timing
-        const _pageLoadTime = Date.now();
-        let   _firstInteractionDone = false;
-        function _trackFirstInteraction(type) {
-            if (_firstInteractionDone) return;
-            _firstInteractionDone = true;
-            track('first_interaction', null, { ms: Date.now() - _pageLoadTime, type });
-        }
-        // Scroll depth milestones
-        const _scrollMilestones = new Set();
-        window.addEventListener('scroll', () => {
-            const scrolled = window.scrollY + window.innerHeight;
-            const total    = document.documentElement.scrollHeight;
-            const pct      = Math.round(scrolled / total * 100);
-            [25, 50, 75, 100].forEach(m => {
-                if (pct >= m && !_scrollMilestones.has(m)) {
-                    _scrollMilestones.add(m);
-                    track('scroll_depth', null, { pct: m });
-                }
-            });
-        }, { passive: true });
-        track('page_load', null, { return_visitor: _isReturnVisitor });
 
-        const UI = {
-            en: {
-                tagline:   'Taste the Wild',
-                viewAR:    'VIEW ON TABLE',
-                view3D:    'VIEW IN 3D',
-                loading:   'Loading...',
-                close:     'Close',
-                tip:       'Drag to rotate',
-                placeHint: 'Point at a flat surface, then tap to place',
-                moveHint:  'Drag to rotate · Pinch to scale',
-                exitAR:    'Exit Model view',
-                placeAgain:'Place Again',
-                hintStep1: 'STEP 1 OF 2',
-                hintScan:  'Move slowly over a table or floor',
-                hintStep2: 'STEP 2 OF 2',
-                hintTap:   'Tap to place your dish',
-                coachScan:    'Find a Surface',
-                coachScanSub: 'Slowly move your phone over a flat surface',
-                coachFound:   'Surface Found!',
-                coachFoundSub:'Ready to place your dish',
-                langBtn:   'ქარ',
-                themeDay:  'Day',
-                themeNight:'Night',
-                carouselBtn:  'CAROUSEL',
-    singleBtn:    'SINGLE ITEM',
-    onTable:      'ON TABLE',
-    floating:     'FLOATING',
-    addBtn:       'ADD',
-    basketTitle:  'Basket',
-    emptyBasket:  'Your basket is empty',
-    total:        'Total',
-    clearBasket:  'Clear',
-    readyBtn:     '✓ Ready to Order',
-    readyDone:    '✓ Order Noted!',
-    hideUI:       'HIDE UI',
-    showUI:       'SHOW UI',
-            },
-            ka: {
-                tagline:   'გასინჯე ველური გემო',
-                viewAR:    'ᲛᲐᲒᲘᲓᲐᲖᲔ ᲜᲐᲮᲕᲐ',
-                view3D:    '3D-ში ᲜᲐᲮᲕᲐ',
-                loading:   'იტვირთება...',
-                close:     'დახურვა',
-                tip:       'გაასრიალეთ მოსაბრუნებლად',
-                placeHint: 'მიუშვირე ბრტყელ ზედაპირს, როდესაც გამოჩნდება ნიშნული შეეხე',
-                moveHint:  'გასაბრუნებლად გაასრიალე · პინჩი მასშტაბისთვის',
-                exitAR:    'მოდელის დახურვა',
-                placeAgain:'ხელახლა დადება',
-                hintStep1: 'ნაბიჯი 1 / 2',
-                hintScan:  'ნელა გადაადგილე ბრტყელ ზედაპირზე',
-                hintStep2: 'ნაბიჯი 2 / 2',
-                hintTap:   'შეეხე ეკრანს მოთავსებისთვის',
-                coachScan:    'ზედაპირის ძიება',
-                coachScanSub: 'ნელა გადაადგილეთ ტელეფონი ბრტყელ ზედაპირზე',
-                coachFound:   'ზედაპირი ნაპოვნია!',
-                coachFoundSub:'მზადაა კერძის დასადებად',
-                langBtn:   'EN',
-                themeDay:  'ნათელი თემა',
-                themeNight:'მუქი თემა',
-                carouselBtn:  'კარუსელი',
-    singleBtn:    'ცალი',
-    onTable:      'მაგიდაზე ტექსტი ',
-    floating:     'მოლივლივე ტექსტი',
-    addBtn:       'დამატება',
-    basketTitle:  'კალათა',
-    emptyBasket:  'კალათა ცარიელია',
-    total:        'სულ',
-    clearBasket:  'გასუფთავება',
-    readyBtn:     '✓ შეკვეთა მზადაა',
-    readyDone:    '✓ მიღებულია!',
-    hideUI:       'UI დამალვა',
-    showUI:       'UI ჩვენება',
-            }
-        };
+        let allItems = [];
+        let _arCap   = localStorage.getItem('bl-ar-cap') || null;
+        let _arOpening = false;
 
-        // ── Language ───────────────────────────────────────────────────
-        window.__lang = localStorage.getItem('bl-lang') || 'en';
-
-        function t(item, field) {
-            const ka = field + '_ka';
-            return (window.__lang === 'ka' && item[ka]) ? item[ka] : item[field];
-        }
-
-        function applyLang(lang) {
-            window.__lang = lang;
-            localStorage.setItem('bl-lang', lang);
-            const u = UI[lang];
-            const theme = document.documentElement.getAttribute('data-theme');
-            document.getElementById('tagline').textContent       = u.tagline;
-            document.getElementById('lang-toggle').textContent   = u.langBtn;
-            const _themeToggle = document.getElementById('theme-toggle');
-            _themeToggle.innerHTML = theme === 'night' ? _SVG_SUN : _SVG_MOON;
-            _themeToggle.setAttribute('aria-label', theme === 'night' ? u.themeDay : u.themeNight);
-            document.getElementById('close-btn').textContent     = u.close;
-            document.getElementById('modal-tip').textContent     = u.tip;
-            window.XR?.refreshHint?.();
-            document.getElementById('xr-move-hint').textContent  = u.moveHint;
-            document.getElementById('xr-exit').textContent        = u.exitAR;
-            document.getElementById('xr-place-again').textContent = u.placeAgain;
-            const btnText = window.__arCap === 'none' ? u.view3D : u.viewAR;
-            document.querySelectorAll('.ar-btn:not(:disabled)').forEach(b => { b.textContent = btnText; });
-            document.querySelectorAll('[data-field][data-idx]').forEach(el => {
-                const item = menuItems[parseInt(el.dataset.idx)];
-                if (item) el.textContent = t(item, el.dataset.field);
-            });
-            const carouselBtn = document.getElementById('xr-carousel-toggle');
-            const labelBtn    = document.getElementById('xr-label-toggle');
-            const hideUIBtn   = document.getElementById('xr-hide-ui');
-            if (carouselBtn) carouselBtn.textContent = (localStorage.getItem('bl-xr-view') || 'single') === 'single' ? u.carouselBtn : u.singleBtn;
-            if (labelBtn)    labelBtn.textContent    = (localStorage.getItem('bl-xr-label') || 'float') === 'float' ? u.onTable : u.floating;
-            if (hideUIBtn)   hideUIBtn.textContent   = _xrUIHidden ? u.showUI : u.hideUI;
-            document.querySelectorAll('.category-header[data-cat-name]').forEach(el => {
-                el.textContent = (lang === 'ka' && el.dataset.catNameKa) ? el.dataset.catNameKa : el.dataset.catName;
-            });
-            if (modal.classList.contains('active')) updateModal();
-            if (window._updateFilterPillLabels) window._updateFilterPillLabels(lang);
-            const _mArBtn = document.getElementById('modal-ar-btn');
-            if (_mArBtn) _mArBtn.textContent = u.viewAR;
-            // Basket
-            document.getElementById('basket-bar-count') && _updateBasketBar();
-            if (document.getElementById('basket-panel').style.display !== 'none') _renderBasketPanel();
-            document.querySelectorAll('.qty-ctrl').forEach(ctrl => _syncQtyCtrl(ctrl.dataset.idx));
-        }
-
-        document.getElementById('lang-toggle').addEventListener('click', () => {
-            const _from = window.__lang, _to = _from === 'en' ? 'ka' : 'en';
-            track('lang_change', null, { from: _from, to: _to });
-            applyLang(_to);
-        });
-
-        // ── Theme ──────────────────────────────────────────────────────
-        const html     = document.documentElement;
-        const themeBtn = document.getElementById('theme-toggle');
-
-        const _SVG_SUN  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
-        const _SVG_MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-
-        function applyTheme(theme) {
-            html.setAttribute('data-theme', theme);
-            themeBtn.innerHTML    = theme === 'night' ? _SVG_SUN : _SVG_MOON;
-            themeBtn.setAttribute('aria-label', theme === 'night' ? UI[window.__lang].themeDay : UI[window.__lang].themeNight);
-            localStorage.setItem('bl-theme', theme);
-        }
-        applyTheme(localStorage.getItem('bl-theme') || 'night');
-        themeBtn.addEventListener('click', () => {
-            const _from = html.getAttribute('data-theme'), _to = _from === 'night' ? 'day' : 'night';
-            track('theme_change', null, { from: _from, to: _to });
-            applyTheme(_to);
-        });
-
-        // ── XR session state ───────────────────────────────────────────
-        document.addEventListener('xr-session-start', () => {
-            _arStartTime = Date.now();
-            const _xrItem = window.XR?.getCurrentItem();
-            const _xrIdx  = (_xrItem && menuItems) ? menuItems.indexOf(_xrItem) : null;
-            if (_xrIdx >= 0) _arViewedItems.add(_xrIdx);
-            track('ar_success', _xrIdx >= 0 ? _xrIdx : null);
-            document.getElementById('theme-toggle').style.display = 'none';
-            document.getElementById('lang-toggle').style.display  = 'none';
-            document.getElementById('xr-add-btn').classList.add('visible');
-        });
-
-        document.addEventListener('xr-session-end', e => {
-            const _arEndMs = Date.now();
-            _arOpening = false;
-            setARButtonsState(false);
-            document.getElementById('theme-toggle').style.display = '';
-            document.getElementById('lang-toggle').style.display  = '';
-            document.getElementById('xr-add-btn').classList.remove('visible');
-            if (e.detail?.fallbackIdx != null) {
-                const _fbItems = _arCatItems || menuItems;
-                const _fbItem  = _fbItems[e.detail.fallbackIdx];
-                const _fbIdx   = (_fbItem && menuItems) ? menuItems.indexOf(_fbItem) : null;
-                track('ar_fallback', _fbIdx >= 0 ? _fbIdx : null);
-                openModal(e.detail.fallbackIdx, _fbItems);
-            } else if (_arStartTime != null) {
-                track('ar_duration', null, { duration_ms: _arEndMs - _arStartTime });
-            }
-            _arStartTime = null;
-        });
-
-        // ── Modal ──────────────────────────────────────────────────────
-        const modal       = document.getElementById('modal');
-        const modalViewer = document.getElementById('modal-viewer');
-        const modalTitle  = document.getElementById('modal-title');
-        const modalPrice  = document.getElementById('modal-price');
-        let menuItems  = [];
-        let modalItems = [];
-        let modalIndex = 0;
-
-        const modalQtyCtrl = document.getElementById('modal-qty-ctrl');
-        modalQtyCtrl.querySelector('.qty-add-btn').addEventListener('click', e => { e.stopPropagation(); const k = modalQtyCtrl.dataset.idx; addToBasket(k, modalItems[modalIndex]); });
-        modalQtyCtrl.querySelector('.qty-dec').addEventListener('click',     e => { e.stopPropagation(); const k = modalQtyCtrl.dataset.idx; const en = _basket.get(k); if (en) _setQty(k, en.qty - 1); });
-        modalQtyCtrl.querySelector('.qty-inc').addEventListener('click',     e => { e.stopPropagation(); const k = modalQtyCtrl.dataset.idx; addToBasket(k, modalItems[modalIndex]); });
-        document.getElementById('close-btn').addEventListener('click', closeModal);
-        modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-        const modalArBtn = document.getElementById('modal-ar-btn');
-        modalArBtn.addEventListener('click', () => {
-            const idx   = modalIndex;
-            const items = modalItems;
-            closeModal();
-            openAR(idx, items);
-        });
-        document.getElementById('modal-prev').addEventListener('click', e => {
-            e.stopPropagation();
-            modalIndex = (modalIndex - 1 + modalItems.length) % modalItems.length;
-            updateModal();
-        });
-        document.getElementById('modal-next').addEventListener('click', e => {
-            e.stopPropagation();
-            modalIndex = (modalIndex + 1) % modalItems.length;
-            updateModal();
-        });
-
-        function updateModal() {
-            const item = modalItems[modalIndex];
-            if (!item) return;
-            modalViewer.src        = item.model || '';
-            if (item.thumbnail_url) modalViewer.setAttribute('poster', item.thumbnail_url);
-            else modalViewer.removeAttribute('poster');
-            modalTitle.textContent = t(item, 'name');
-            modalPrice.textContent = item.price;
-            const key = String(modalIndex);
-            document.getElementById('modal-qty-ctrl').dataset.idx = key;
-            _syncQtyCtrl(key);
-        }
-
-        function openModal(localIdx, catItems) {
-            modalItems = catItems || menuItems;
-            modalIndex = localIdx;
-            const _viewItem = modalItems[localIdx];
-            const _viewIdx  = (_viewItem && menuItems) ? menuItems.indexOf(_viewItem) : null;
-            _modalOpenTime = Date.now();
-            const _repeatView = _viewIdx >= 0 && _modalViewedItems.has(_viewIdx);
-            if (_viewIdx >= 0) _modalViewedItems.add(_viewIdx);
-            track('item_view', _viewIdx >= 0 ? _viewIdx : null, _repeatView ? { repeat: true } : null);
-            _trackFirstInteraction('3d');
-            updateModal();
-            const cap = window.__arCap;
-            modalArBtn.textContent  = UI[window.__lang].viewAR;
-            modalArBtn.style.display = (cap && cap !== 'none') ? '' : 'none';
-            modal.style.display = 'flex';
-            requestAnimationFrame(() => modal.classList.add('active'));
-            document.body.style.overflow = 'hidden';
-            // Defer thumbnail teardown past the modal fade-in frame so it doesn't block animation
-            requestAnimationFrame(() => {
-                document.querySelectorAll('.thumb-wrap model-viewer').forEach(mv => {
-                    if (!mv.src) return;
-                    const t = _thumbUnload.get(mv);
-                    if (t) { clearTimeout(t); _thumbUnload.delete(mv); }
-                    mv.dataset.pausedSrc = mv.src;
-                    mv.removeAttribute('src');
-                });
-            });
-        }
-
-        function closeModal() {
-            const _closeItem = modalItems[modalIndex];
-            const _closeIdx  = (_closeItem && menuItems) ? menuItems.indexOf(_closeItem) : null;
-            track('modal_close', _closeIdx >= 0 ? _closeIdx : null,
-                  { duration_ms: _modalOpenTime ? Date.now() - _modalOpenTime : null });
-            _modalOpenTime = null;
-            modal.classList.remove('active');
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modalViewer.removeAttribute('src');
-                document.querySelectorAll('.thumb-wrap model-viewer').forEach(mv => {
-                    if (!mv.dataset.pausedSrc) return;
-                    delete mv.dataset.pausedSrc;
-                    const r = mv.getBoundingClientRect();
-                    if (r.bottom > -100 && r.top < window.innerHeight + 100) _scheduleThumb(mv);
-                });
-            }, 200);
-            document.body.style.overflow = '';
-        }
-
-        // ── AR capability detection ────────────────────────────────────
-        async function detectAR() {
-            const cached = localStorage.getItem('bl-ar-cap');
-            const ts = parseInt(localStorage.getItem('bl-ar-cap-ts') || '0');
-            if (cached && (Date.now() - ts < 7 * 24 * 60 * 60 * 1000)) { window.__arCap = cached; return cached; }
-
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            let cap = 'none';
-            if (navigator.xr) {
-                try {
-                    if (await navigator.xr.isSessionSupported('immersive-ar')) cap = 'webxr';
-                } catch {}
-            }
-            if (cap === 'none' && isIOS) cap = 'arkit';
-            window.__arCap = cap;
-            localStorage.setItem('bl-ar-cap', cap);
-            localStorage.setItem('bl-ar-cap-ts', String(Date.now()));
-            return cap;
-        }
-
-        function setARButtonsState(loading) {
-            const u = UI[window.__lang];
-            const label = loading ? u.loading : (window.__arCap === 'none' ? u.view3D : u.viewAR);
-            document.querySelectorAll('.ar-btn').forEach(b => {
-                b.textContent = label;
-                b.disabled    = loading;
-            });
-        }
-
-        // ── iOS AR launcher — hidden model-viewers pre-load so activateAR()
-        //    can fire synchronously from the tap without losing the gesture context.
-        //    Cache key includes ar_scale so items with different scales get distinct launchers.
+        // iOS launcher cache
         const _arLaunchers = {};
         function _getARLauncher(src, arScale) {
             const scale = arScale || 1.0;
@@ -2167,8 +1083,6 @@
                 mv.setAttribute('ar', '');
                 mv.setAttribute('ar-modes', 'quick-look');
                 mv.src = src;
-                // Bake ar_scale into the USDZ so Quick Look places the model at the same
-                // real-world size that the Android Three.js renderer applies via ar_scale.
                 if (scale !== 1.0) mv.setAttribute('scale', `${scale} ${scale} ${scale}`);
                 mv.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-9999px;left:-9999px;';
                 mv.addEventListener('load', () => {
@@ -2179,12 +1093,10 @@
                     });
                 });
                 document.body.appendChild(mv);
-                // After Three.js finishes decoding all models, swap to a y-offset-corrected
-                // GLB blob so Quick Look places the model on the surface, not below it.
                 window.XR?._preloadDone?.then(() =>
                     window.XR.getSeatedBlob?.(src, scale).then(blobUrl => {
                         if (blobUrl && mv.isConnected) {
-                            mv.removeAttribute('scale'); // scale is baked into the seated blob
+                            mv.removeAttribute('scale');
                             mv.src = blobUrl;
                         }
                     })
@@ -2194,203 +1106,80 @@
             return _arLaunchers[key];
         }
 
-        const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (_isIOS && !window.__arCap) window.__arCap = 'arkit';
-
-        function _launchIOSAR(launcher, localIdx) {
-            // activateAR() silently does nothing if the model hasn't finished loading.
-            // Fall back to 3D modal so the user gets content; they can retry AR once
-            // the launcher has finished downloading the GLB and converting to USDZ.
+        function _launchIOSAR(launcher, item) {
             if (!launcher.loaded) {
-                setARButtonsState(false);
                 _arOpening = false;
-                openModal(localIdx, _arCatItems);
+                const btn = document.getElementById('start-btn');
+                btn.disabled = false;
+                btn.textContent = 'TAP TO START AR';
                 return;
             }
             function onARStatus(e) {
                 const s = e.detail.status;
-                const _iosItem = _arCatItems ? _arCatItems[localIdx] : null;
-                const _iosIdx  = (_iosItem && menuItems) ? menuItems.indexOf(_iosItem) : null;
-                const _iosGIdx = _iosIdx >= 0 ? _iosIdx : null;
-                if (s === 'failed') {
+                if (s === 'failed' || s === 'session-started') {
                     launcher.removeEventListener('ar-status', onARStatus);
-                    track('ar_fallback', _iosGIdx);
-                    setARButtonsState(false);
                     _arOpening = false;
-                    openModal(localIdx, _arCatItems);
-                } else if (s === 'session-started') {
-                    launcher.removeEventListener('ar-status', onARStatus);
-                    track('ar_success', _iosGIdx);
+                    const btn = document.getElementById('start-btn');
+                    btn.disabled = false;
+                    btn.textContent = 'TAP TO START AR';
                 }
             }
             launcher.addEventListener('ar-status', onARStatus);
             launcher.activateAR();
-            setTimeout(() => { setARButtonsState(false); _arOpening = false; }, 2500);
-        }
-
-        // ── AR routing ─────────────────────────────────────────────────
-        let _arOpening  = false;
-        let _arCatItems = null;
-
-        async function openAR(localIdx, catItems) {
-            if (_arOpening) return;
-            _arOpening  = true;
-            _arCatItems = catItems || menuItems;
-            const _tapItem = _arCatItems[localIdx];
-            const _tapIdx  = (_tapItem && menuItems) ? menuItems.indexOf(_tapItem) : null;
-            track('ar_tap', _tapIdx >= 0 ? _tapIdx : null,
-                  { source: modal.classList.contains('active') ? 'modal' : 'card' });
-            _trackFirstInteraction('ar');
-            setARButtonsState(true);
-
-            const cap  = window.__arCap ?? await detectAR();
-            const item = _arCatItems[localIdx];
-
-            if (!item) { setARButtonsState(false); _arOpening = false; return; }
-
-            if (cap === 'webxr' && window.XR) {
-                try {
-                    await window.XR.start(localIdx, _arCatItems);
-                } catch (err) {
-                    console.error('XR start failed:', err);
-                    openModal(localIdx, _arCatItems);
-                    setARButtonsState(false);
-                    _arOpening = false;
-                }
-            } else if (cap === 'arkit') {
-                _launchIOSAR(_getARLauncher(item.model || 'food.glb', item.ar_scale), localIdx);
-            } else {
-                // No AR support (non-ARCore Android, desktop) — open 3D modal
-                openModal(localIdx, _arCatItems);
-                setARButtonsState(false);
+            setTimeout(() => {
                 _arOpening = false;
+                const btn = document.getElementById('start-btn');
+                btn.disabled = false;
+                btn.textContent = 'TAP TO START AR';
+            }, 2500);
+        }
+
+        async function detectAR() {
+            if (_arCap) return _arCap;
+            const isIOS = _isIOS;
+            let cap = 'none';
+            if (navigator.xr) {
+                try { if (await navigator.xr.isSessionSupported('immersive-ar')) cap = 'webxr'; } catch {}
             }
+            if (cap === 'none' && isIOS) cap = 'arkit';
+            _arCap = cap;
+            localStorage.setItem('bl-ar-cap', cap);
+            localStorage.setItem('bl-ar-cap-ts', String(Date.now()));
+            return cap;
         }
 
-        // ── Thumbnail loader — staggered load, delayed unload ──────────────
-        // Stagger prevents simultaneous WebGL context init spikes on page load.
-        // No hard cap — every visible thumbnail loads; unload after 2s off-screen.
-        const _thumbPending = new Set();
-        const _thumbUnload  = new WeakMap();
-        let   _thumbTimer   = null;
-
-        function _drainThumbs() {
-            _thumbTimer = null;
-            const mv = _thumbPending.values().next().value;
-            if (!mv) return;
-            _thumbPending.delete(mv);
-            if (mv.isConnected && !mv.src) mv.src = mv.dataset.src;
-            if (_thumbPending.size > 0) _thumbTimer = setTimeout(_drainThumbs, 150);
+        // Normalize relative model paths since this page lives in /ar/
+        function normalizeModel(model) {
+            if (!model) return 'food.glb';
+            if (model.startsWith('http')) return model;
+            return model;
         }
 
-        function _scheduleThumb(mv) {
-            const t = _thumbUnload.get(mv);
-            if (t) { clearTimeout(t); _thumbUnload.delete(mv); }
-            if (_thumbPending.has(mv) || mv.src) return;
-            _thumbPending.add(mv);
-            if (!_thumbTimer) _thumbTimer = setTimeout(_drainThumbs, 0);
-        }
+        let _iosSelectedIdx = 0;
 
-        function _unscheduleThumb(mv) {
-            _thumbPending.delete(mv);
-            if (!mv.src) return;
-            const t = setTimeout(() => {
-                _thumbUnload.delete(mv);
-                if (!mv.dataset.pausedSrc) mv.removeAttribute('src');
-                if (_thumbPending.size > 0 && !_thumbTimer)
-                    _thumbTimer = setTimeout(_drainThumbs, 0);
-            }, 2000);
-            _thumbUnload.set(mv, t);
-        }
-
-        const thumbObserver = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) _scheduleThumb(entry.target);
-                else                       _unscheduleThumb(entry.target);
+        function buildIOSStrip(items) {
+            const strip = document.getElementById('ios-strip');
+            strip.innerHTML = '';
+            items.forEach((item, i) => {
+                const el = document.createElement('div');
+                el.className = 'ios-item' + (i === 0 ? ' selected' : '');
+                el.innerHTML = `<div class="ios-item-name">${item.name}</div><div class="ios-item-price">${item.price}</div>`;
+                el.addEventListener('click', () => {
+                    _iosSelectedIdx = i;
+                    strip.querySelectorAll('.ios-item').forEach((c, ci) =>
+                        c.classList.toggle('selected', ci === i)
+                    );
+                });
+                strip.appendChild(el);
             });
-        }, { rootMargin: '200px' });
-
-        // ── Build menu ─────────────────────────────────────────────────
-
-        // Fetch theme config from Supabase and apply as CSS overrides
-        async function applyRemoteTheme() {
-            if (!_sbClient) return;
-            try {
-                const { data } = await _sbClient.from('theme_config').select('key,value');
-                if (!data || !data.length) return;
-                const cfg = Object.fromEntries(data.map(r => [r.key, r.value]));
-                const varMap = {
-                    bg: '--bg', card: '--card', card2: '--card2', border: '--border',
-                    text: '--text', dim: '--dim', accent: '--accent',
-                    accent_text: '--accent-text', thumb_bg: '--thumb-bg', modal_bg: '--modal-bg'
-                };
-                // Clear any inline CSS-variable overrides a previous version may have set
-                // directly on <html> (inline styles beat attribute-selector rules and would
-                // prevent the theme toggle from changing colours).
-                Object.values(varMap).forEach(v => document.documentElement.style.removeProperty(v));
-                // Inject a <style> block that overrides both themes regardless of which is active
-                let css = '[data-theme="night"] {';
-                Object.entries(varMap).forEach(([k, cssVar]) => {
-                    if (cfg[`night_${k}`]) css += `${cssVar}:${cfg[`night_${k}`]};`;
-                });
-                css += '} [data-theme="day"] {';
-                Object.entries(varMap).forEach(([k, cssVar]) => {
-                    if (cfg[`day_${k}`]) css += `${cssVar}:${cfg[`day_${k}`]};`;
-                });
-                css += '}';
-                let styleEl = document.getElementById('remote-theme');
-                if (!styleEl) {
-                    styleEl = document.createElement('style');
-                    styleEl.id = 'remote-theme';
-                    document.head.appendChild(styleEl);
-                }
-                styleEl.textContent = css;
-                // Font overrides
-                if (cfg.font_body) {
-                    const link = document.createElement('link');
-                    link.rel  = 'stylesheet';
-                    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cfg.font_body)}:wght@400;600;700&display=swap`;
-                    document.head.appendChild(link);
-                    document.body.style.fontFamily = `'${cfg.font_body}', sans-serif`;
-                }
-                if (cfg.font_heading) {
-                    const link = document.createElement('link');
-                    link.rel  = 'stylesheet';
-                    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cfg.font_heading)}&display=swap`;
-                    document.head.appendChild(link);
-                    document.querySelectorAll('.restaurant-name, .item-name, .category-header')
-                        .forEach(el => { el.style.fontFamily = `'${cfg.font_heading}', sans-serif`; });
-                }
-                // Branding
-                if (cfg.site_name || cfg.site_name_ka) {
-                    document.querySelectorAll('[data-brand]').forEach(el => {
-                        el.textContent = (window.__lang === 'ka' && cfg.site_name_ka)
-                            ? cfg.site_name_ka : (cfg.site_name || el.textContent);
-                    });
-                }
-            } catch (_) {}
         }
 
-        async function buildMenu() {
-            const fallback = [
-                { name: 'Jalapeno Burger', name_ka: 'ჰალაპენიუ ბურგერი', category: 'Burgers', category_ka: 'ბურგერები', description: '300g beef, 4 layers cheddar cheese, 2 layers bacon, caramelized jalapeno with bacon, special sauce, burger bun.', description_ka: 'ხორცი 300 გრ, ყველი ჩედარი 4 ფენა, ბეკონი 2 ფენა, კარამელიზირებული ჰალაპენიო ბეკონით, სპეც სოუსი.', price: '27.5 ₾', model: 'Druidi.glb' },
-                { name: 'Druid',           name_ka: 'დრუიდი',             category: 'Burgers', category_ka: 'ბურგერები', description: '600g beef, 5 layers cheddar cheese, 4 layers bacon, special sauce, pickles, iceberg lettuce, burger bun.',         description_ka: 'ხორცი 600 გრ, ყველი ჩედარი 5 ფენა, ბეკონი 4 ფენა, სპეც სოუსი, მჟავე კიტრი, აისბერგი.',               price: '32.8 ₾', model: 'Druidi.glb' },
-                { name: 'Lion Sauce Extra',name_ka: 'ლომების სოუსი ექსტრა', category: 'Sides', category_ka: 'გარნირი | სოუსები', description: 'Fries, cheese sauce, jalapeno, beef, bacon, onion, parmesan, cheddar and iceberg.',                         description_ka: 'ფრი, ყველის სოუსი, ჰალაპენიო, საქონლის ხორცი, ბეკონი, ხახვი, პარმეზანი, ჩედარი და აისბერგი.',       price: '23.8 ₾', model: 'Druidi.glb' },
-                { name: 'Coca Cola',       name_ka: 'კოკა კოლა',          category: 'Drinks',  category_ka: 'სასმელები',  description: 'Coca-Cola 0.33L',                                                                                                 description_ka: 'კოკა-კოლა 0.33ლ',                                                                                        price: '3.5 ₾',  model: 'food.glb'   },
-                { name: 'Tiramisu',        name_ka: 'ტირამისუ',            category: 'Desserts',category_ka: 'ტკბილეული', description: 'Classic tiramisu dessert.',                                                                                       description_ka: 'კლასიკური ტირამისუ.',                                                                                    price: '10 ₾',   model: 'food.glb'   },
-            ];
-
-            const cachedCap = localStorage.getItem('bl-ar-cap');
-            if (cachedCap) window.__arCap = cachedCap;
-            // Start detection in background — don't block menu render on it
-            const arCapPromise = detectAR();
-
-            // Fetch menu from Supabase; fall back to local JSON then hardcoded fallback
+        async function init() {
+            // Fetch menu
             let items = null;
-            if (_sbClient) {
+            if (sbClient) {
                 try {
-                    const { data } = await _sbClient
+                    const { data } = await sbClient
                         .from('menu_items')
                         .select('*, categories(name_en, name_ka)')
                         .eq('visible', true)
@@ -2398,383 +1187,86 @@
                         .order('sort_order');
                     if (data && data.length) {
                         items = data.map(r => ({
-                            name:           r.name_en,
-                            name_ka:        r.name_ka,
-                            category:       r.categories?.name_en || 'Other',
-                            category_ka:    r.categories?.name_ka || 'სხვა',
-                            description:    r.description_en,
-                            description_ka: r.description_ka,
-                            price:          r.price,
-                            model:          r.model,
-                            ar_scale:       r.ar_scale ?? 1.0,
-                            thumbnail_url:  r.thumbnail_url || '',
-                            thumb_3d:       r.thumb_3d ?? false,
+                            name:        r.name_en,
+                            name_ka:     r.name_ka,
+                            category:    r.categories?.name_en || 'Other',
+                            description: r.description_en,
+                            price:       r.price,
+                            model:       normalizeModel(r.model),
+                            ar_scale:    r.ar_scale ?? 1.0,
                         }));
                     }
                 } catch (_) {}
             }
             if (!items) {
-                items = await fetch('./foods/menu.json').then(r => r.json()).catch(() => fallback);
+                try {
+                    const r = await fetch('./foods/menu.json');
+                    const raw = await r.json();
+                    items = raw.map(i => ({ ...i, model: normalizeModel(i.model) }));
+                } catch (_) {}
+            }
+            if (!items || !items.length) {
+                document.getElementById('start-btn').textContent = 'Could not load menu';
+                return;
+            }
+            allItems = items;
+
+            const cap = await detectAR();
+
+            const btn = document.getElementById('start-btn');
+
+            if (cap === 'none') {
+                btn.style.display = 'none';
+                document.getElementById('start-sub').style.display = 'none';
+                document.getElementById('no-ar-msg').style.display = 'block';
+                return;
             }
 
-            // Apply remote theme in parallel — doesn't block menu render
-            applyRemoteTheme();
-
-            menuItems = items;
-            window.__menuItems = items;
-            // iOS: pre-load one launcher per unique (model, ar_scale) pair so the
-            // USDZ is ready — and correctly scaled — before the user taps AR.
-            if (_isIOS) {
-                items.forEach(item => { if (item.model) _getARLauncher(item.model, item.ar_scale); });
-            }
-            // After menu paints, silently preload Three.js + decode all models
-            setTimeout(() => window.XR?.backgroundPreload?.(items), 200);
-
-            const initialLabel = window.__arCap === 'none' ? UI[window.__lang].view3D : UI[window.__lang].viewAR;
-
-            // Group by category, preserving order from JSON
-            const categories = [];
-            const categoryMap = new Map();
-            items.forEach((item, globalIdx) => {
-                const key = item.category || 'Other';
-                if (!categoryMap.has(key)) {
-                    const cat = { name: key, name_ka: item.category_ka || key, items: [] };
-                    categories.push(cat);
-                    categoryMap.set(key, cat);
-                }
-                categoryMap.get(key).items.push({ item, globalIdx });
-            });
-
-            const list = document.getElementById('menu-list');
-
-            categories.forEach(cat => {
-                const catItems = cat.items.map(e => e.item);
-
-                const section = document.createElement('div');
-                section.className = 'cat-section';
-                section.dataset.cat = cat.name;
-
-                const header = document.createElement('div');
-                header.className = 'category-header';
-                header.dataset.catName   = cat.name;
-                header.dataset.catNameKa = cat.name_ka;
-                header.textContent = window.__lang === 'ka' ? cat.name_ka : cat.name;
-                section.appendChild(header);
-
-                cat.items.forEach(({ item, globalIdx }, localIdx) => {
-                    const card = document.createElement('div');
-                    card.className = 'menu-item';
-                    card.innerHTML = `
-                        <p class="item-name" data-field="name" data-idx="${globalIdx}">${t(item, 'name')}</p>
-                        <div class="item-left">
-                            <div class="thumb-wrap">
-                                ${item.thumbnail_url && !item.thumb_3d
-                                    ? `<img class="thumb-img" src="${item.thumbnail_url}" alt="${t(item, 'name')}" loading="lazy">`
-                                    : `<model-viewer
-                                    data-src="${item.model || ''}"
-                                    ${item.thumbnail_url ? `poster="${item.thumbnail_url}"` : ''}
-                                    camera-controls
-                                    shadow-intensity="0"
-                                    interaction-prompt="none"
-                                    min-camera-orbit="auto 0deg auto"
-                                    max-camera-orbit="auto 85deg auto">
-                                </model-viewer>`}
-                                <div class="thumb-vignette"></div>
-                            </div>
-                        </div>
-                        <div class="item-right">
-                            <p class="ingredients" data-field="description" data-idx="${globalIdx}">${t(item, 'description')}</p>
-                            <div class="item-actions">
-                                <p class="price">${item.price}</p>
-                                <div class="qty-ctrl" data-idx="${globalIdx}">
-                                    <button class="qty-add-btn" aria-label="Add to basket"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></button>
-                                    <div class="qty-stepper">
-                                        <button class="qty-dec">&#8722;</button>
-                                        <span class="qty-num">1</span>
-                                        <button class="qty-inc">+</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <button class="ar-btn">${initialLabel}</button>
-                        </div>`;
-
-                    const mv = card.querySelector('model-viewer');
-                    if (mv) {
-                        thumbObserver.observe(mv);
-                        let _px = 0, _py = 0;
-                        mv.addEventListener('pointerdown', e => { _px = e.clientX; _py = e.clientY; });
-                        mv.addEventListener('pointerup', e => {
-                            if (Math.abs(e.clientX - _px) < 6 && Math.abs(e.clientY - _py) < 6)
-                                openModal(globalIdx, menuItems);
-                        });
-                    } else {
-                        card.querySelector('.thumb-img')
-                            ?.addEventListener('click', () => openModal(globalIdx, menuItems));
-                    }
-
-                    card.querySelector('.item-right').addEventListener('click', () => openModal(globalIdx, menuItems));
-                    card.querySelector('.item-name').addEventListener('click', () => openModal(globalIdx, menuItems));
-                    card.querySelector('.ar-btn').addEventListener('click', e => { e.stopPropagation(); openAR(globalIdx, menuItems); });
-                    const qCtrl = card.querySelector('.qty-ctrl');
-                    qCtrl.querySelector('.qty-add-btn').addEventListener('click', e => { e.stopPropagation(); addToBasket(String(globalIdx), item); });
-                    qCtrl.querySelector('.qty-dec').addEventListener('click', e => { e.stopPropagation(); const en = _basket.get(String(globalIdx)); if (en) _setQty(String(globalIdx), en.qty - 1); });
-                    qCtrl.querySelector('.qty-inc').addEventListener('click', e => { e.stopPropagation(); addToBasket(String(globalIdx), item); });
-
-                    section.appendChild(card);
-                });
-
-                list.appendChild(section);
-            });
-
-            // ── Category filter pills ──────────────────────────────────
-            const filterDiv = document.getElementById('cat-filter');
-            let _activeFilter = '';
-
-            const allPill = document.createElement('button');
-            allPill.className = 'cat-pill active';
-            allPill.dataset.cat   = '';
-            allPill.dataset.catKa = '';
-            allPill.textContent   = window.__lang === 'ka' ? 'ყველა' : 'All';
-            filterDiv.appendChild(allPill);
-
-            categories.forEach(cat => {
-                const pill = document.createElement('button');
-                pill.className      = 'cat-pill';
-                pill.dataset.cat    = cat.name;
-                pill.dataset.catKa  = cat.name_ka;
-                const label = window.__lang === 'ka' ? cat.name_ka : cat.name;
-                pill.textContent    = label;
-                filterDiv.appendChild(pill);
-            });
-
-            function applyFilter(cat) {
-                _activeFilter = cat;
-                document.querySelectorAll('.cat-pill').forEach(p =>
-                    p.classList.toggle('active', p.dataset.cat === cat)
-                );
-                document.querySelectorAll('.cat-section').forEach(s => {
-                    s.style.display = (cat === '' || s.dataset.cat === cat) ? '' : 'none';
-                });
-            }
-
-            filterDiv.addEventListener('click', e => {
-                const pill = e.target.closest('.cat-pill');
-                if (pill) {
-                    track('category_filter', null, { category: pill.dataset.cat || 'All' });
-                    applyFilter(pill.dataset.cat);
-                }
-            });
-
-            // expose so applyLang can update pill text
-            window._updateFilterPillLabels = function(lang) {
-                document.querySelectorAll('.cat-pill').forEach(p => {
-                    if (p.dataset.cat === '') {
-                        p.textContent = lang === 'ka' ? 'ყველა' : 'All';
-                    } else {
-                        const name = lang === 'ka' ? p.dataset.catKa : p.dataset.cat;
-                        p.textContent = name;
-                    }
-                });
-            };
-
-            applyLang(window.__lang);
-
-            // Correct button labels once AR detection resolves (instant if cap was cached)
-            arCapPromise.then(() => {
-                const u = UI[window.__lang];
-                const finalLabel = window.__arCap === 'none' ? u.view3D : u.viewAR;
-                if (finalLabel !== initialLabel)
-                    document.querySelectorAll('.ar-btn:not(:disabled)').forEach(b => { b.textContent = finalLabel; });
-            });
-        }
-
-        // ── Basket ─────────────────────────────────────────────────────
-        const _basket = new Map(); // key = String(globalIdx) -> { item, qty }
-        window._basket = _basket;
-        const _xrAddedKeys = new Set(); // keys added via XR button (eligible for XR toggle-off)
-
-        function _parsePrice(str) {
-            return parseFloat(String(str).replace(/[^\d.]/g, '')) || 0;
-        }
-        function _fmtPrice(num) {
-            const n = Math.round(num * 10) / 10;
-            return n + ' ₾';
-        }
-        function _basketTotal() {
-            let s = 0;
-            _basket.forEach(({ item, qty }) => { s += _parsePrice(item.price) * qty; });
-            return s;
-        }
-        function _basketCount() {
-            let n = 0;
-            _basket.forEach(({ qty }) => { n += qty; });
-            return n;
-        }
-
-        function _updateBasketBar() {
-            const count = _basketCount();
-            const bar   = document.getElementById('basket-bar');
-            bar.classList.toggle('visible', count > 0);
-            document.body.classList.toggle('basket-bar-visible', count > 0);
-            if (count > 0) {
-                const u = UI[window.__lang];
-                document.getElementById('basket-bar-count').textContent =
-                    count + ' ' + (window.__lang === 'ka' ? 'პროდუქტი' : count === 1 ? 'item' : 'items');
-                document.getElementById('basket-bar-total').textContent = _fmtPrice(_basketTotal());
-            }
-        }
-
-        function _syncQtyCtrl(key) {
-            const entry = _basket.get(key);
-            const qty   = entry ? entry.qty : 0;
-            document.querySelectorAll(`.qty-ctrl[data-idx="${key}"]`).forEach(ctrl => {
-                const addBtn  = ctrl.querySelector('.qty-add-btn');
-                const stepper = ctrl.querySelector('.qty-stepper');
-                const numEl   = ctrl.querySelector('.qty-num');
-                if (qty > 0) {
-                    addBtn.style.display = 'none';
-                    stepper.classList.add('visible');
-                    numEl.textContent = qty;
-                } else {
-                    addBtn.style.display = '';
-                    stepper.classList.remove('visible');
-                }
-            });
-        }
-
-        function addToBasket(key, item) {
-            const _isNew = !_basket.has(key);
-            if (_basket.has(key)) _basket.get(key).qty++;
-            else                   _basket.set(key, { item, qty: 1 });
-            if (_isNew) {
-                const _bIdx = parseInt(key, 10);
-                track('basket_add', _bIdx, {
-                    after_ar: _arViewedItems.has(_bIdx),
-                    after_3d: _modalViewedItems.has(_bIdx),
-                });
-            }
-            _syncQtyCtrl(key);
-            _updateBasketBar();
-            if (document.getElementById('basket-panel').style.display !== 'none') _renderBasketPanel();
-        }
-
-        function _setQty(key, qty) {
-            if (qty <= 0) {
-                if (_basket.has(key)) track('basket_remove', parseInt(key, 10));
-                _basket.delete(key);
-            } else if (_basket.has(key)) _basket.get(key).qty = qty;
-            _syncQtyCtrl(key);
-            _updateBasketBar();
-            if (document.getElementById('basket-panel').style.display !== 'none') _renderBasketPanel();
-        }
-
-        function _renderBasketPanel() {
-            const u   = UI[window.__lang];
-            const box = document.getElementById('basket-items');
-            box.innerHTML = '';
-            document.getElementById('basket-title').textContent      = u.basketTitle;
-            document.getElementById('basket-clear').textContent      = u.clearBasket;
-            document.getElementById('basket-close').textContent      = u.close;
-            document.getElementById('basket-total-label').textContent = u.total;
-            if (_basket.size === 0) {
-                box.innerHTML = `<p class="basket-empty">${u.emptyBasket}</p>`;
+            if (cap === 'arkit') {
+                // iOS: show strip, pre-load all launchers
+                document.getElementById('ios-strip-wrap').style.display = 'flex';
+                document.getElementById('start-sub').style.display = 'none';
+                buildIOSStrip(items);
+                items.forEach(item => _getARLauncher(item.model, item.ar_scale));
+                // Background preload for seated blobs
+                setTimeout(() => window.XR?.backgroundPreload?.(items), 300);
             } else {
-                _basket.forEach(({ item, qty }, key) => {
-                    const line = _parsePrice(item.price) * qty;
-                    const row  = document.createElement('div');
-                    row.className = 'basket-item';
-                    row.innerHTML = `
-                        <span class="basket-item-name">${t(item, 'name')}</span>
-                        <div class="basket-qty">
-                            <button class="qty-btn" data-key="${key}" data-delta="-1">&#8722;</button>
-                            <span class="qty-count">${qty}</span>
-                            <button class="qty-btn" data-key="${key}" data-delta="1">+</button>
-                        </div>
-                        <span class="basket-item-price">${_fmtPrice(line)}</span>`;
-                    box.appendChild(row);
-                });
+                // Android WebXR: background preload
+                setTimeout(() => window.XR?.backgroundPreload?.(items), 200);
             }
-            document.getElementById('basket-total').textContent = _fmtPrice(_basketTotal());
+
+            btn.disabled = false;
+            btn.textContent = 'TAP TO START AR';
+
+            btn.addEventListener('click', async () => {
+                if (_arOpening) return;
+                _arOpening = true;
+                btn.disabled = true;
+                btn.textContent = 'Loading…';
+
+                if (cap === 'arkit') {
+                    const item    = allItems[_iosSelectedIdx];
+                    const launcher = _getARLauncher(item.model, item.ar_scale);
+                    _launchIOSAR(launcher, item);
+                } else {
+                    try {
+                        await window.XR.start(0, allItems);
+                    } catch (e) {
+                        console.error(e);
+                        _arOpening = false;
+                        btn.disabled = false;
+                        btn.textContent = 'TAP TO START AR';
+                    }
+                }
+            });
         }
 
-        function _openBasket() {
-            track('basket_open');
-            _renderBasketPanel();
-            const panel = document.getElementById('basket-panel');
-            panel.style.display = 'flex';
-            requestAnimationFrame(() => panel.classList.add('active'));
-            document.body.style.overflow = 'hidden';
-        }
-        function _closeBasket() {
-            const panel = document.getElementById('basket-panel');
-            panel.classList.remove('active');
-            setTimeout(() => { panel.style.display = 'none'; }, 230);
-            document.body.style.overflow = '';
-        }
-
-        document.getElementById('xr-add-btn').addEventListener('click', e => {
-            e.stopPropagation();
-            const item = window.XR?.getCurrentItem();
-            if (!item || !window.__menuItems) return;
-            const idx = window.__menuItems.indexOf(item);
-            if (idx < 0) return;
-            const key = String(idx);
-            if (!_basket.has(key)) {
-                addToBasket(key, item);
-                _xrAddedKeys.add(key);
-            } else if (_xrAddedKeys.has(key)) {
-                _setQty(key, 0);
-                _xrAddedKeys.delete(key);
-            }
-            // Already in basket from outside — do nothing
-            document.getElementById('xr-add-btn').classList.toggle('in-basket', _basket.has(key));
-        });
-
-        document.getElementById('basket-bar').addEventListener('click', _openBasket);
-        document.getElementById('basket-bar-delete').addEventListener('click', e => {
-            e.stopPropagation();
-            const keys = [..._basket.keys()];
-            _basket.clear();
-            keys.forEach(k => _syncQtyCtrl(k));
-            _updateBasketBar();
-        });
-        document.getElementById('basket-close').addEventListener('click', _closeBasket);
-        document.getElementById('basket-panel').addEventListener('click', e => {
-            if (e.target === document.getElementById('basket-panel')) _closeBasket();
-        });
-        document.getElementById('basket-clear').addEventListener('click', () => {
-            if (_basket.size > 0) {
-                const snapshot = [];
-                let total = 0;
-                _basket.forEach(({ item, qty }) => {
-                    snapshot.push({ name: item.name, qty, price: item.price });
-                    total += _parsePrice(item.price) * qty;
-                });
-                track('basket_clear', null, {
-                    item_count: snapshot.length,
-                    items: snapshot,
-                    total_gel: Math.round(total * 10) / 10,
-                });
-            }
-            const keys = [..._basket.keys()];
-            _basket.clear();
-            keys.forEach(k => _syncQtyCtrl(k));
-            _updateBasketBar();
-            _renderBasketPanel();
-        });
-document.getElementById('basket-items').addEventListener('click', e => {
-            const btn = e.target.closest('.qty-btn');
-            if (!btn) return;
-            const entry = _basket.get(btn.dataset.key);
-            if (entry) _setQty(btn.dataset.key, entry.qty + parseInt(btn.dataset.delta));
-        });
-
-        buildMenu();
+        init();
+    })();
     </script>
+
     <script>
         if ('serviceWorker' in navigator) {
-            // Auto-reload the page when a new SW takes over — otherwise users
-            // would keep running the old cached HTML until they manually refresh.
             let _swReloaded = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (_swReloaded) return;
@@ -2783,14 +1275,12 @@ document.getElementById('basket-items').addEventListener('click', e => {
             });
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
-                    // Force-check for a new SW on every page load.
                     reg.update().catch(() => {});
                     reg.addEventListener('updatefound', () => {
                         const newSW = reg.installing;
                         if (!newSW) return;
                         newSW.addEventListener('statechange', () => {
                             if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                                // A new SW is waiting — activate it immediately
                                 newSW.postMessage({ type: 'SKIP_WAITING' });
                             }
                         });
