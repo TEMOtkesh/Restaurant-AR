@@ -379,8 +379,11 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
   .hero-meta .div{ display:none; }
 
   .stage{ border-radius:20px; }
+  .badge-x{ display:none; }                 /* shorten "Live 3D · drag to rotate" → "Live 3D" so it can't collide with the chip */
+  .badge{ left:14px; top:14px; font-size:10px; padding:6px 10px; }
   .float-chip{ padding:9px 12px; } .float-chip b{ font-size:18px; }
   .float-chip span{ font-size:10.5px; }
+  .fc1{ right:14px; top:14px; }
 
   .card{ padding:24px; } .card h3{ font-size:19px; }
   .persona{ padding:24px; }
@@ -425,7 +428,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
     <div class="hero-copy">
       <span class="kicker rv in">Tbilisi · WebAR menu platform</span>
       <h1 class="rv in d1">Let guests <span class="gradtext">see the dish</span> on their table — before they order.</h1>
-      <p class="lead rv in d2">BetaReal turns real dishes into interactive 3D models diners can rotate, inspect, and place in Augmented Reality — right in the phone browser. No app. Just a QR code on the table.</p>
+      <p class="lead rv in d2">BetaReal turns real dishes into interactive 3D models. Diners rotate, inspect, and place them in Augmented Reality — right in the phone browser. No app. Just a QR code on the table.</p>
       <div class="hero-cta rv in d3">
         <a class="btn btn-primary" href="https://3darmenu.pages.dev" target="_blank" rel="noopener">Open the live menu <span class="arr">→</span></a>
         <a class="btn btn-ghost" href="#how">How it works</a>
@@ -441,7 +444,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
 
     <div class="hero-stage rv in d2">
       <div class="stage">
-        <div class="badge"><span class="dotpulse"></span> Live 3D · drag to rotate</div>
+        <div class="badge"><span class="dotpulse"></span> Live 3D<span class="badge-x"> · drag to rotate</span></div>
         <model-viewer
           src="https://pub-3c68559de18f4aee94d127e180937bdd.r2.dev/1780572481066_Druid4Final.glb"
           alt="A real burger scanned into an interactive 3D model"
@@ -676,7 +679,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
   <div class="wrap">
     <div class="sec-head rv">
       <span class="kicker">Validation</span>
-      <h2>The problem is real — and the value prop resonates.</h2>
+      <h2>The problem is real — and the solution resonates.</h2>
       <p class="lead">Early signal from a bilingual diner survey, plus a working MVP instrumented end-to-end. Honest stage: pre-revenue, MVP live, validation in progress.</p>
     </div>
     <div class="grid4">
@@ -701,14 +704,14 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
       <div class="fw-steps">
         <div class="fw-step rv d1"><span class="k">01</span><div><b>Land restaurants</b><p>Every onboarding is a paid service — and a data-collection event.</p></div></div>
         <div class="fw-step rv d2"><span class="k">02</span><div><b>Capture (photos → 3D) pairs</b><p>Each dish produces a training pair: source photos mapped to a finished, optimized model.</p></div></div>
-        <div class="fw-step rv d3"><span class="k">03</span><div><b>Fine-tune image-to-3D AI</b><p>At ~3,000 quality models — enough to cover most of the Georgian market — we fine-tune an open-source model on rented GPUs.</p></div></div>
+        <div class="fw-step rv d3"><span class="k">03</span><div><b>Fine-tune image-to-3D AI</b><p>At ~500 unique models — enough variety to train a model that generalizes to almost any dish — we fine-tune an open-source model on rented GPUs.</p></div></div>
         <div class="fw-step rv d4"><span class="k">04</span><div><b>Production cost collapses</b><p>Cheaper, faster models let us undercut and out-scale anyone doing this by hand → more clients → more data.</p></div></div>
       </div>
       <div class="fw-orbit rv d2">
         <div class="orb a"></div><div class="orb b"></div><div class="orb c"></div><div class="orb d"></div>
         <div class="fw-core">
-          <div class="n">~3,000</div>
-          <div class="l">models to cover the market</div>
+          <div class="n">500</div>
+          <div class="l">unique models to cover the market</div>
         </div>
       </div>
     </div>
@@ -783,7 +786,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
   <div class="wrap">
     <div class="cta-card rv">
       <span class="kicker" style="justify-content:center">Tbilisi → Georgia → international</span>
-      <h2 style="margin-top:18px">Building the largest WebAR food network in the region.</h2>
+      <h2 style="margin-top:18px">AR menus for restaurants everywhere — starting now.</h2>
       <p>First-mover in Georgia, benchmarked against the global leader, with a data moat that compounds with every dish. See it working on a real restaurant's menu.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="https://3darmenu.pages.dev" target="_blank" rel="noopener">Open the live demo <span class="arr">→</span></a>
