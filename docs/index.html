@@ -156,6 +156,21 @@ model-viewer{ width:100%; height:100%; --poster-color:transparent; background:tr
 .float-chip span{ font-size:11.5px; color:var(--dim); }
 .fc1{ right:16px; top:16px; } .fc2{ left:16px; bottom:48px; }
 @media(max-width:420px){ .float-chip{ padding:9px 12px; } .float-chip b{ font-size:18px; } }
+
+/* AR "view on table" button (slotted into model-viewer; hidden until AR is confirmed available) */
+.ar-cta{ display:none; position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+  z-index:7; align-items:center; gap:8px; cursor:pointer; white-space:nowrap;
+  font-family:'Satoshi'; font-weight:700; font-size:14px; letter-spacing:-0.01em; color:#fff;
+  background:linear-gradient(180deg,var(--blue2),var(--blue)); border:1px solid rgba(255,255,255,.28);
+  padding:11px 18px; border-radius:12px;
+  box-shadow:0 12px 30px -10px var(--glow), inset 0 1px 0 rgba(255,255,255,.3);
+  transition:.25s var(--ease); -webkit-tap-highlight-color:transparent; }
+.ar-cta:hover{ transform:translateX(-50%) translateY(-2px); box-shadow:0 18px 42px -12px var(--glow); }
+.ar-cta:active{ transform:translateX(-50%) translateY(0); }
+.ar-cta svg{ width:16px; height:16px; }
+model-viewer.ar-ready .ar-cta{ display:inline-flex; }
+.stage.has-ar .hint{ display:none; }                    /* swap caption for the button on AR devices */
+.gal-item .ar-cta{ font-size:12.5px; padding:9px 14px; bottom:12px; }
 /* ---------- marquee / benchmark strip ---------- */
 .strip{ border-top:1px solid var(--line); border-bottom:1px solid var(--line);
   margin-top:50px; background:rgba(10,14,26,0.4); }
@@ -408,7 +423,14 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           min-camera-orbit="auto 58deg 120%"
           max-camera-orbit="auto 90deg 200%"
           environment-image="neutral"
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-placement="floor"
           loading="eager">
+          <button slot="ar-button" class="ar-cta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg>
+            View on table
+          </button>
         </model-viewer>
         <div class="hint">Real dish · scanned · optimized GLB</div>
         <div class="float-chip fc1"><b>+20–26%</b><span>avg order value*</span></div>
@@ -441,17 +463,17 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
       <div class="stat-big rv d1">
         <div class="n">100%</div>
         <div class="t">have had a dish arrive looking different than expected — 74% said it bothered them.</div>
-        <div class="src">Source: BetaReal survey, n=23</div>
+        <div class="src">Source: BetaReal diner survey</div>
       </div>
       <div class="stat-big rv d2">
         <div class="n">78%</div>
         <div class="t">hesitate before ordering at least sometimes because they can't judge the real portion size.</div>
-        <div class="src">Source: BetaReal survey, n=23</div>
+        <div class="src">Source: BetaReal diner survey</div>
       </div>
       <div class="stat-big rv d3">
         <div class="n">#1</div>
         <div class="t">cited problem is portion size — followed by "food looks different from the photo."</div>
-        <div class="src">Source: BetaReal survey, n=23</div>
+        <div class="src">Source: BetaReal diner survey</div>
       </div>
     </div>
   </div>
@@ -576,7 +598,10 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           alt="Hot dog 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
           camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
-          loading="lazy" reveal="auto"></model-viewer>
+          ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
+          loading="lazy" reveal="auto">
+          <button slot="ar-button" class="ar-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg> View on table</button>
+        </model-viewer>
         <div class="cap"><b>Hot Dog</b><span>GLB · ~5.9 MB</span></div>
       </div>
       <div class="gal-item rv d2">
@@ -584,7 +609,10 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           alt="Donut 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
           camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
-          loading="lazy" reveal="auto"></model-viewer>
+          ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
+          loading="lazy" reveal="auto">
+          <button slot="ar-button" class="ar-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg> View on table</button>
+        </model-viewer>
         <div class="cap"><b>Donut</b><span>GLB · ~6.3 MB</span></div>
       </div>
       <div class="gal-item rv d3">
@@ -592,7 +620,10 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           alt="Croissant 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
           camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
-          loading="lazy" reveal="auto"></model-viewer>
+          ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
+          loading="lazy" reveal="auto">
+          <button slot="ar-button" class="ar-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg> View on table</button>
+        </model-viewer>
         <div class="cap"><b>Croissant</b><span>GLB · ~8.2 MB</span></div>
       </div>
     </div>
@@ -613,7 +644,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
       <div class="card rv d3"><div class="ic">🔁</div><h3>91%</h3><p>said it would change how they order vs a normal QR menu — 52% would try dishes they normally wouldn't.</p></div>
       <div class="card rv d4"><div class="ic">🧪</div><h3>MVP live</h3><p>Three real AR render paths, self-service admin, and a full analytics funnel — built by the founders in ~1 month.</p></div>
     </div>
-    <p class="honest rv">* Benchmark figures (AOV uplift, upsell effectiveness) are reported by QReal/Kabaq, the global category leader — cited as proof the model works, not as BetaReal's own results.<br>** Survey figures are from BetaReal's early bilingual diner survey (n=23, warm sample) — directional, not conclusive. We are pre-revenue with no paying clients yet.</p>
+    <p class="honest rv">* Benchmark figures (AOV uplift, upsell effectiveness) are reported by QReal/Kabaq, the global category leader — cited as proof the model works, not as BetaReal's own results.<br>** Survey figures are from BetaReal's ongoing bilingual diner survey (early, warm sample) — directional, not conclusive. We are pre-revenue with no paying clients yet.</p>
   </div>
 </section>
 
@@ -769,6 +800,19 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
     entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
   }, {threshold:0.14, rootMargin:'0px 0px -8% 0px'});
   document.querySelectorAll('.rv:not(.in)').forEach(el=>io.observe(el));
+
+  // AR: only reveal the "View on table" button on devices where AR can actually launch
+  document.querySelectorAll('model-viewer[ar]').forEach(mv=>{
+    const sync=()=>{
+      if(mv.canActivateAR){
+        mv.classList.add('ar-ready');
+        const host = mv.closest('.stage, .gal-item');
+        if(host) host.classList.add('has-ar');
+      }
+    };
+    mv.addEventListener('load', sync);
+    mv.addEventListener('ar-status', sync);
+  });
 </script>
 </body>
 </html>
