@@ -117,6 +117,7 @@ header.scrolled{ background:rgba(6,8,15,0.72); backdrop-filter:blur(16px) satura
 /* ---------- hero ---------- */
 .hero{ padding:72px 0 40px; }
 .hero-grid{ display:grid; grid-template-columns:1.05fr 0.95fr; gap:48px; align-items:center; }
+.hero-grid > *{ min-width:0; }   /* let grid items shrink below model-viewer's intrinsic width */
 @media(max-width:940px){ .hero-grid{ grid-template-columns:1fr; gap:30px; } }
 .hero h1{ font-size:clamp(40px,6.2vw,72px); margin:18px 0 0; }
 .hero .lead{ margin-top:22px; }
@@ -356,6 +357,39 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
 
 .honest{ font-family:'JetBrains Mono'; font-size:11px; color:var(--dim); letter-spacing:.03em;
   margin-top:14px; }
+
+/* ---------- small screens / phones ---------- */
+@media(max-width:600px){
+  body{ font-size:16.5px; }
+  .wrap{ padding:0 18px; }
+  .nav{ height:64px; }
+  .brand img{ height:38px; }
+  header.scrolled{ backdrop-filter:blur(14px) saturate(140%); }
+  .btn{ padding:12px 18px; font-size:14.5px; }
+  .nav-cta .btn{ padding:10px 15px; font-size:14px; }
+
+  section{ padding:62px 0; }
+  .hero{ padding:40px 0 26px; }
+  .sec-head{ margin-bottom:34px; }
+  .strip-in{ gap:18px; padding:18px 0; }
+  .strip .items{ gap:22px; }
+
+  /* hero meta reads cleaner stacked; drop the vertical dividers */
+  .hero-meta{ gap:18px 22px; margin-top:26px; }
+  .hero-meta .div{ display:none; }
+
+  .stage{ border-radius:20px; }
+  .float-chip{ padding:9px 12px; } .float-chip b{ font-size:18px; }
+  .float-chip span{ font-size:10.5px; }
+
+  .card{ padding:24px; } .card h3{ font-size:19px; }
+  .persona{ padding:24px; }
+  .stat-big{ padding:28px 24px; }
+  .steps{ border-radius:18px; } .step{ padding:30px 24px; }
+  .tier{ padding:26px; }
+  .cta{ padding:74px 0; } .cta-card{ padding:48px 24px; border-radius:24px; }
+  .moat .fw-orbit{ max-width:300px; margin:0 auto; }
+}
 </style>
 </head>
 <body>
@@ -412,6 +446,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           src="https://pub-3c68559de18f4aee94d127e180937bdd.r2.dev/1780572481066_Druid4Final.glb"
           alt="A real burger scanned into an interactive 3D model"
           camera-controls
+          disable-pan
           auto-rotate
           auto-rotate-delay="0"
           rotation-per-second="18deg"
@@ -419,9 +454,9 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           shadow-intensity="1.1"
           shadow-softness="0.9"
           exposure="1.05"
-          camera-orbit="20deg 80deg 150%"
-          min-camera-orbit="auto 58deg 120%"
-          max-camera-orbit="auto 90deg 200%"
+          camera-orbit="20deg 78deg 122%"
+          min-camera-orbit="auto 5deg 108%"
+          max-camera-orbit="auto 90deg 190%"
           environment-image="neutral"
           ar
           ar-modes="webxr scene-viewer quick-look"
@@ -598,7 +633,8 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           poster="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/thumbnails/thumb_1780046740147.webp"
           alt="Hot dog 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
-          camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
+          camera-orbit="0deg 80deg 120%" min-camera-orbit="auto 5deg 100%" max-camera-orbit="auto 90deg 165%"
+          disable-pan
           ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
           loading="lazy" reveal="auto">
           <button slot="ar-button" class="ar-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg> View on table</button>
@@ -610,7 +646,8 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           poster="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/thumbnails/thumb_1780046956786.webp"
           alt="Donut 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
-          camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
+          camera-orbit="0deg 80deg 120%" min-camera-orbit="auto 5deg 100%" max-camera-orbit="auto 90deg 165%"
+          disable-pan
           ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
           loading="lazy" reveal="auto">
           <button slot="ar-button" class="ar-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg> View on table</button>
@@ -622,7 +659,8 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
           poster="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/thumbnails/thumb_1780046967707.webp"
           alt="Croissant 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
-          camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
+          camera-orbit="0deg 80deg 120%" min-camera-orbit="auto 5deg 100%" max-camera-orbit="auto 90deg 165%"
+          disable-pan
           ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
           loading="lazy" reveal="auto">
           <button slot="ar-button" class="ar-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg> View on table</button>
