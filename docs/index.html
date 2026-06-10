@@ -223,6 +223,25 @@ section{ padding:96px 0; }
 .step p{ color:var(--soft); font-size:15.5px; margin:0; }
 .step .em{ font-size:30px; margin-bottom:8px; display:block; }
 
+/* personas / use cases */
+.persona-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media(max-width:860px){ .persona-grid{ grid-template-columns:1fr 1fr; } }
+@media(max-width:560px){ .persona-grid{ grid-template-columns:1fr; } }
+.persona{ display:flex; flex-direction:column; position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line);
+  border-radius:20px; padding:28px; transition:.35s var(--ease); }
+.persona:hover{ border-color:var(--line2); transform:translateY(-4px);
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.8); }
+.persona .pic{ width:48px; height:48px; border-radius:13px; display:grid; place-items:center;
+  font-size:24px; background:rgba(47,107,255,0.12); border:1px solid var(--line2); margin-bottom:18px; }
+.persona .ptag{ font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--blue2); }
+.persona h3{ font-size:20px; margin:7px 0 9px; }
+.persona p{ font-size:15px; color:var(--soft); margin:0; flex:1; }
+.persona .out{ margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
+  display:flex; gap:9px; align-items:flex-start; font-size:14px; color:var(--text); line-height:1.45; }
+.persona .out .up{ color:var(--good); font-weight:800; flex-shrink:0; font-family:'Clash Display'; }
+
 /* moat / flywheel */
 .moat{ background:
    radial-gradient(700px 400px at 80% 20%, rgba(47,107,255,0.12), transparent 60%); }
@@ -335,6 +354,7 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
       <img src="assets/logo-dark.png" alt="BetaReal" width="150" height="34">
     </a>
     <nav class="nav-links">
+      <a href="#who">Use cases</a>
       <a href="#product">Product</a>
       <a href="#proof">Traction</a>
       <a href="#moat">The Moat</a>
@@ -463,6 +483,61 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
         <div class="no">STEP 03</div>
         <h3>Place it on your table</h3>
         <p>Tap "View on table" and the dish appears in AR at true size on the real table — Android WebXR or iOS Quick Look, straight from the browser.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHO IT'S FOR ============ -->
+<section id="who">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">Who it's for</span>
+      <h2>Every kind of diner orders with more confidence — and orders more.</h2>
+      <p class="lead">One menu meets very different guests where they are. Each persona is a reason an order gets bigger, bolder, or simply happens at all.</p>
+    </div>
+    <div class="persona-grid">
+      <div class="persona rv d1">
+        <div class="pic">🧳</div>
+        <span class="ptag">The tourist</span>
+        <h3>New country, unfamiliar cuisine</h3>
+        <p>Doesn't recognize a single dish on the menu. Sees it in 3D and placed on the table — understanding exactly what arrives, past any language barrier.</p>
+        <div class="out"><span class="up">↑</span> Orders authentic local dishes instead of defaulting to the one safe thing they recognize.</div>
+      </div>
+      <div class="persona rv d2">
+        <div class="pic">🍽️</div>
+        <span class="ptag">The first-timer</span>
+        <h3>A new-concept restaurant</h3>
+        <p>Fusion, fine dining, or unusual plating they've never encountered. Previews the real portion and presentation before committing to it.</p>
+        <div class="out"><span class="up">↑</span> Tries the signature dish instead of playing it safe with the familiar option.</div>
+      </div>
+      <div class="persona rv d3">
+        <div class="pic">🔁</div>
+        <span class="ptag">The regular</span>
+        <h3>Knows the classics by heart</h3>
+        <p>Always orders the same two things. The 3D menu surfaces dishes they've scrolled past for months and finally makes them look worth trying.</p>
+        <div class="out"><span class="up">↑</span> Branches out and adds items they'd normally never order — 52% told our survey they would.</div>
+      </div>
+      <div class="persona rv d1">
+        <div class="pic">📏</div>
+        <span class="ptag">The portion-anxious</span>
+        <h3>"How big is it, really?"</h3>
+        <p>Can't judge size or whether it's enough from a flat photo — the #1 problem in our survey. Sees true-to-life scale on their own table in AR.</p>
+        <div class="out"><span class="up">↑</span> Orders the right amount with confidence — often an extra side or dish.</div>
+      </div>
+      <div class="persona rv d2">
+        <div class="pic">👥</div>
+        <span class="ptag">The sharing table</span>
+        <h3>A group deciding together</h3>
+        <p>Everyone passes the phone, inspecting dishes in 3D before the table commits. The menu becomes the centre of the decision, not an afterthought.</p>
+        <div class="out"><span class="up">↑</span> Larger, better-coordinated shared orders with fewer "I'll just get nothing."</div>
+      </div>
+      <div class="persona rv d3">
+        <div class="pic">📸</div>
+        <span class="ptag">The experience seeker</span>
+        <h3>Here for something memorable</h3>
+        <p>Expects interactive, social-media-worthy moments. Placing a dish in AR on the table is novel, fun, and instantly shareable.</p>
+        <div class="out"><span class="up">↑</span> Engages longer, talks about it, and brings the restaurant word-of-mouth.</div>
       </div>
     </div>
   </div>
