@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetaReal — See the dish before you order</title>
+<meta name="description" content="BetaReal turns real dishes into interactive 3D models diners place on their own table in Augmented Reality — in the browser, no app. A Tbilisi-based WebAR menu platform for restaurants.">
+
+<!-- Open Graph -->
+<meta property="og:title" content="BetaReal — See the dish before you order">
+<meta property="og:description" content="WebAR menus for restaurants. Real dishes, scanned into interactive 3D, placed on the guest's table — no app download.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700,500&f[]=satoshi@400,500,700,900&f[]=jetbrains-mono@500&display=swap" rel="stylesheet">
+
+<!-- model-viewer for the live interactive 3D -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+
+<style>
+:root{
+  --bg:#06080F;
+  --bg2:#0A0E1A;
+  --panel:#0E1426;
+  --panel2:#111A30;
+  --line:rgba(140,170,255,0.12);
+  --line2:rgba(94,139,255,0.28);
+  --text:#ECF1FF;
+  --soft:#C2CFEA;
+  --dim:#8392B0;
+  --blue:#2F6BFF;
+  --blue2:#5E8BFF;
+  --blue-ink:#9FB8FF;
+  --glow:rgba(47,107,255,0.45);
+  --good:#3ED9A0;
+  --warn:#FFB155;
+  --maxw:1180px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'Satoshi',-apple-system,sans-serif; font-weight:500;
+  font-size:18px; line-height:1.6; letter-spacing:-0.01em;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+
+/* ---------- atmosphere ---------- */
+.bg-fx{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+.bg-fx::before{
+  content:''; position:absolute; inset:0;
+  background:
+    radial-gradient(900px 620px at 78% -8%, rgba(47,107,255,0.20), transparent 60%),
+    radial-gradient(720px 540px at -6% 22%, rgba(47,107,255,0.10), transparent 55%),
+    radial-gradient(800px 700px at 110% 88%, rgba(94,139,255,0.10), transparent 55%);
+}
+.bg-fx::after{ /* fine grid */
+  content:''; position:absolute; inset:0; opacity:.55;
+  background-image:
+    linear-gradient(rgba(140,170,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140,170,255,0.045) 1px, transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 72%);
+}
+.grain{ position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.06; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+main, header, footer{ position:relative; z-index:2; }
+.wrap{ max-width:var(--maxw); margin:0 auto; padding:0 28px; }
+
+/* ---------- type ---------- */
+h1,h2,h3,h4{ font-family:'Clash Display',sans-serif; font-weight:600; line-height:1.02;
+  letter-spacing:-0.025em; margin:0; }
+h2{ font-size:clamp(30px,4.6vw,52px); }
+.kicker{ font-family:'JetBrains Mono',monospace; font-weight:500; font-size:12px;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--blue2); display:inline-flex;
+  align-items:center; gap:9px; }
+.kicker::before{ content:''; width:22px; height:1px; background:var(--blue2); opacity:.8; }
+.g{ color:var(--blue2); }
+.gradtext{ background:linear-gradient(100deg,#fff 10%,var(--blue2) 60%,var(--blue) 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.muted{ color:var(--dim); }
+.lead{ color:var(--soft); font-size:clamp(17px,1.5vw,20px); font-weight:500; max-width:54ch; }
+
+/* ---------- buttons ---------- */
+.btn{ display:inline-flex; align-items:center; gap:10px; font-family:'Satoshi'; font-weight:700;
+  font-size:15.5px; letter-spacing:-0.01em; padding:14px 24px; border-radius:13px;
+  text-decoration:none; cursor:pointer; border:1px solid transparent; transition:.28s var(--ease); }
+.btn .arr{ transition:transform .28s var(--ease); }
+.btn:hover .arr{ transform:translateX(4px); }
+.btn-primary{ background:linear-gradient(180deg,var(--blue2),var(--blue)); color:#fff;
+  box-shadow:0 10px 30px -8px var(--glow), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn-primary:hover{ box-shadow:0 16px 44px -10px var(--glow), inset 0 1px 0 rgba(255,255,255,.3);
+  transform:translateY(-2px); }
+.btn-ghost{ background:rgba(255,255,255,0.02); color:var(--text); border-color:var(--line2); }
+.btn-ghost:hover{ background:rgba(94,139,255,0.10); border-color:var(--blue2); transform:translateY(-2px); }
+
+/* ---------- header ---------- */
+header{ position:sticky; top:0; z-index:40; transition:.3s var(--ease);
+  border-bottom:1px solid transparent; }
+header.scrolled{ background:rgba(6,8,15,0.72); backdrop-filter:blur(16px) saturate(140%);
+  border-bottom:1px solid var(--line); }
+.nav{ display:flex; align-items:center; justify-content:space-between; height:74px; }
+.brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
+.brand .mark{ position:relative; width:26px; height:26px; border-radius:7px;
+  background:linear-gradient(150deg,var(--blue2),#1a40b8); flex-shrink:0;
+  box-shadow:0 6px 16px -6px var(--glow), inset 0 1px 0 rgba(255,255,255,.3); }
+.brand .mark::before{ content:''; position:absolute; inset:7px 6px 7px 9px;
+  background:#fff; clip-path:polygon(0 0,100% 18%,100% 82%,0 100%,0 64%,55% 50%,0 36%);
+  opacity:.96; }
+.brand .mark::after{ content:''; position:absolute; left:-7px; top:6px; width:4px; height:4px;
+  border-radius:1px; background:var(--blue2);
+  box-shadow:-5px 5px 0 -1px var(--blue2), -3px 11px 0 -1.5px var(--blue-ink); }
+.brand .wm{ font-family:'Clash Display'; font-weight:600; font-size:21px; letter-spacing:-0.02em;
+  color:#fff; }
+.brand .wm b{ color:var(--blue2); font-weight:600; }
+.foot .brand .mark{ width:23px; height:23px; }
+.nav-links{ display:flex; align-items:center; gap:30px; }
+.nav-links a{ color:var(--soft); text-decoration:none; font-size:15px; font-weight:500;
+  transition:.2s; }
+.nav-links a:hover{ color:#fff; }
+.nav-cta{ display:flex; align-items:center; gap:14px; }
+@media(max-width:880px){ .nav-links{ display:none; } }
+
+/* ---------- hero ---------- */
+.hero{ padding:72px 0 40px; }
+.hero-grid{ display:grid; grid-template-columns:1.05fr 0.95fr; gap:48px; align-items:center; }
+@media(max-width:940px){ .hero-grid{ grid-template-columns:1fr; gap:30px; } }
+.hero h1{ font-size:clamp(40px,6.2vw,72px); margin:18px 0 0; }
+.hero .lead{ margin-top:22px; }
+.hero-cta{ display:flex; gap:14px; margin-top:32px; flex-wrap:wrap; }
+.hero-meta{ display:flex; gap:26px; margin-top:34px; flex-wrap:wrap; }
+.hero-meta .m{ display:flex; flex-direction:column; gap:2px; }
+.hero-meta .m b{ font-family:'Clash Display'; font-size:24px; color:#fff; font-weight:600; }
+.hero-meta .m span{ font-size:13px; color:var(--dim); }
+.hero-meta .div{ width:1px; background:var(--line); }
+
+/* stage / interactive 3D */
+.stage{ position:relative; aspect-ratio:1/1.02; border-radius:26px; overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 50% 8%, rgba(47,107,255,0.22), transparent 60%),
+    linear-gradient(180deg,#0A1020 0%,#070B16 100%);
+  border:1px solid var(--line2);
+  box-shadow:0 40px 90px -40px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06); }
+.stage::before{ content:''; position:absolute; inset:0;
+  background-image:linear-gradient(rgba(140,170,255,0.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(140,170,255,0.06) 1px,transparent 1px);
+  background-size:38px 38px; mask-image:radial-gradient(circle at 50% 60%,#000,transparent 78%); }
+model-viewer{ width:100%; height:100%; --poster-color:transparent; background:transparent; }
+.stage .badge{ position:absolute; left:18px; top:18px; z-index:5; display:flex; align-items:center;
+  gap:8px; font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--blue-ink); background:rgba(10,16,32,0.7); border:1px solid var(--line2);
+  padding:7px 12px; border-radius:999px; backdrop-filter:blur(8px); }
+.dotpulse{ width:7px; height:7px; border-radius:50%; background:var(--good);
+  box-shadow:0 0 0 0 rgba(62,217,160,.6); animation:pulse 2s infinite; }
+@keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(62,217,160,.5);} 70%{box-shadow:0 0 0 9px rgba(62,217,160,0);} 100%{box-shadow:0 0 0 0 rgba(62,217,160,0);} }
+.stage .hint{ position:absolute; left:0; right:0; bottom:16px; z-index:5; text-align:center;
+  font-size:12.5px; color:var(--dim); font-family:'JetBrains Mono'; letter-spacing:.05em; }
+.float-chip{ position:absolute; z-index:6; background:rgba(12,18,36,0.82); backdrop-filter:blur(10px);
+  border:1px solid var(--line2); border-radius:14px; padding:11px 15px; box-shadow:0 14px 34px -16px #000; }
+.float-chip b{ font-family:'Clash Display'; font-size:20px; color:#fff; display:block; line-height:1; }
+.float-chip span{ font-size:11px; color:var(--dim); }
+.fc1{ right:-14px; top:20%; } .fc2{ left:-18px; bottom:16%; }
+@media(max-width:940px){ .fc1{ right:6px; } .fc2{ left:6px; } }
+
+/* ---------- marquee / benchmark strip ---------- */
+.strip{ border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  margin-top:50px; background:rgba(10,14,26,0.4); }
+.strip-in{ display:flex; align-items:center; gap:40px; padding:22px 0; flex-wrap:wrap;
+  justify-content:space-between; }
+.strip .lab{ font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--dim); }
+.strip .items{ display:flex; gap:40px; flex-wrap:wrap; }
+.strip .it{ display:flex; align-items:baseline; gap:9px; }
+.strip .it b{ font-family:'Clash Display'; font-size:22px; color:#fff; }
+.strip .it span{ font-size:13.5px; color:var(--soft); }
+
+/* ---------- section scaffolding ---------- */
+section{ padding:96px 0; }
+.sec-head{ max-width:760px; margin-bottom:52px; }
+.sec-head h2{ margin-top:16px; }
+.sec-head p{ margin-top:18px; }
+
+/* reveal */
+.rv{ opacity:0; transform:translateY(26px); transition:.8s var(--ease); }
+.rv.in{ opacity:1; transform:none; }
+.rv.d1{ transition-delay:.08s; } .rv.d2{ transition-delay:.16s; }
+.rv.d3{ transition-delay:.24s; } .rv.d4{ transition-delay:.32s; }
+
+/* cards */
+.card{ background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--line); border-radius:20px; padding:30px; transition:.35s var(--ease);
+  position:relative; overflow:hidden; }
+.card:hover{ border-color:var(--line2); transform:translateY(-4px);
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.8); }
+.card .ic{ width:46px; height:46px; border-radius:12px; display:grid; place-items:center;
+  background:rgba(47,107,255,0.12); border:1px solid var(--line2); margin-bottom:18px;
+  font-size:22px; }
+.card h3{ font-size:21px; margin-bottom:8px; }
+.card p{ font-size:15.5px; color:var(--soft); margin:0; }
+
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.grid2{ display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+.grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+@media(max-width:880px){ .grid3,.grid4{ grid-template-columns:1fr 1fr; } .grid2{ grid-template-columns:1fr; } }
+@media(max-width:560px){ .grid3,.grid4,.grid2{ grid-template-columns:1fr; } }
+
+/* problem */
+.problem{ background:linear-gradient(180deg,transparent, rgba(10,14,26,0.5), transparent); }
+.prob-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+@media(max-width:760px){ .prob-grid{ grid-template-columns:1fr; } }
+.stat-big{ border:1px solid var(--line); border-radius:20px; padding:34px 30px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2)); }
+.stat-big .n{ font-family:'Clash Display'; font-size:clamp(46px,7vw,64px); color:#fff; line-height:.9;
+  background:linear-gradient(180deg,#fff,var(--blue-ink)); -webkit-background-clip:text;
+  background-clip:text; -webkit-text-fill-color:transparent; }
+.stat-big .t{ margin-top:16px; color:var(--soft); font-size:16px; }
+.stat-big .src{ margin-top:10px; font-family:'JetBrains Mono'; font-size:11px; color:var(--dim);
+  letter-spacing:.04em; }
+
+/* steps */
+.steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:1px solid var(--line);
+  border-radius:22px; overflow:hidden; background:rgba(10,14,26,0.4); }
+@media(max-width:760px){ .steps{ grid-template-columns:1fr; } }
+.step{ padding:36px 30px; position:relative; }
+.step:not(:last-child){ border-right:1px solid var(--line); }
+@media(max-width:760px){ .step:not(:last-child){ border-right:none; border-bottom:1px solid var(--line); } }
+.step .no{ font-family:'JetBrains Mono'; font-size:13px; color:var(--blue2); letter-spacing:.1em; }
+.step h3{ font-size:23px; margin:14px 0 10px; }
+.step p{ color:var(--soft); font-size:15.5px; margin:0; }
+.step .em{ font-size:30px; margin-bottom:8px; display:block; }
+
+/* moat / flywheel */
+.moat{ background:
+   radial-gradient(700px 400px at 80% 20%, rgba(47,107,255,0.12), transparent 60%); }
+.flywheel{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:40px; align-items:center; }
+@media(max-width:860px){ .flywheel{ grid-template-columns:1fr; } }
+.fw-steps{ display:flex; flex-direction:column; gap:14px; }
+.fw-step{ display:flex; gap:16px; align-items:flex-start; padding:18px 20px;
+  border:1px solid var(--line); border-radius:16px; background:linear-gradient(180deg,var(--panel),var(--panel2)); }
+.fw-step .k{ font-family:'JetBrains Mono'; font-size:12px; color:var(--blue2);
+  border:1px solid var(--line2); border-radius:8px; padding:4px 9px; flex-shrink:0; margin-top:2px; }
+.fw-step b{ color:#fff; font-family:'Clash Display'; font-weight:500; font-size:17px; }
+.fw-step p{ margin:4px 0 0; color:var(--soft); font-size:14.5px; }
+.fw-orbit{ position:relative; aspect-ratio:1; border-radius:24px; border:1px solid var(--line2);
+  background:radial-gradient(circle at 50% 50%, rgba(47,107,255,0.16), transparent 65%);
+  display:grid; place-items:center; overflow:hidden; }
+.fw-orbit::before, .fw-orbit::after{ content:''; position:absolute; border:1px dashed rgba(140,170,255,0.25);
+  border-radius:50%; }
+.fw-orbit::before{ inset:14%; animation:spin 26s linear infinite; }
+.fw-orbit::after{ inset:30%; animation:spin 18s linear infinite reverse; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.fw-core{ position:relative; z-index:2; text-align:center; }
+.fw-core .n{ font-family:'Clash Display'; font-size:52px; color:#fff; line-height:1; }
+.fw-core .l{ font-size:13px; color:var(--dim); font-family:'JetBrains Mono'; letter-spacing:.08em;
+  text-transform:uppercase; margin-top:6px; }
+.orb{ position:absolute; width:11px; height:11px; border-radius:50%; background:var(--blue2);
+  box-shadow:0 0 14px var(--blue2); }
+.orb.a{ top:14%; left:50%; } .orb.b{ top:50%; right:14%; } .orb.c{ bottom:14%; left:50%; }
+.orb.d{ top:50%; left:14%; }
+
+/* gallery */
+.gal{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media(max-width:860px){ .gal{ grid-template-columns:1fr 1fr; } }
+@media(max-width:560px){ .gal{ grid-template-columns:1fr; } }
+.gal-item{ border:1px solid var(--line); border-radius:20px; overflow:hidden;
+  background:radial-gradient(120% 80% at 50% 0%, rgba(47,107,255,0.14), transparent 60%), var(--panel2);
+  transition:.35s var(--ease); }
+.gal-item:hover{ border-color:var(--line2); transform:translateY(-4px); }
+.gal-item model-viewer{ height:260px; }
+.gal-item .cap{ display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; border-top:1px solid var(--line); }
+.gal-item .cap b{ font-family:'Clash Display'; font-weight:500; font-size:16px; }
+.gal-item .cap span{ font-family:'JetBrains Mono'; font-size:11px; color:var(--dim); }
+
+/* pricing */
+.tiers{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media(max-width:860px){ .tiers{ grid-template-columns:1fr; } }
+.tier{ border:1px solid var(--line); border-radius:20px; padding:30px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2)); position:relative; }
+.tier.feat{ border-color:var(--blue); box-shadow:0 0 0 1px var(--blue), 0 30px 60px -30px var(--glow); }
+.tier .tag{ position:absolute; top:-11px; left:30px; background:var(--blue); color:#fff;
+  font-size:11px; font-family:'JetBrains Mono'; letter-spacing:.1em; padding:4px 11px; border-radius:999px; }
+.tier h3{ font-size:20px; }
+.tier .price{ font-family:'Clash Display'; font-size:42px; color:#fff; margin:14px 0 2px; }
+.tier .price small{ font-size:15px; color:var(--dim); font-family:'Satoshi'; font-weight:500; }
+.tier ul{ list-style:none; padding:0; margin:20px 0 0; }
+.tier li{ font-size:14.5px; color:var(--soft); padding:8px 0 8px 26px; position:relative;
+  border-top:1px solid var(--line); }
+.tier li::before{ content:'✓'; position:absolute; left:0; color:var(--blue2); font-weight:700; }
+.pricing-note{ margin-top:22px; text-align:center; font-size:14px; color:var(--dim); }
+
+/* team */
+.team-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:16px; }
+@media(max-width:880px){ .team-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:480px){ .team-grid{ grid-template-columns:1fr; } }
+.member{ border:1px solid var(--line); border-radius:18px; padding:24px 20px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2)); }
+.member .av{ width:52px; height:52px; border-radius:50%; display:grid; place-items:center;
+  font-family:'Clash Display'; font-size:20px; color:#fff; margin-bottom:16px;
+  background:linear-gradient(135deg,var(--blue),#1840b0); border:1px solid var(--line2); }
+.member b{ display:block; font-family:'Clash Display'; font-weight:500; font-size:16px; }
+.member .role{ font-size:12.5px; color:var(--blue2); font-family:'JetBrains Mono'; margin-top:3px; }
+.member p{ font-size:13px; color:var(--dim); margin:10px 0 0; line-height:1.5; }
+
+/* big cta */
+.cta{ text-align:center; padding:110px 0; position:relative; }
+.cta-card{ border:1px solid var(--line2); border-radius:30px; padding:72px 40px;
+  background:radial-gradient(120% 140% at 50% 0%, rgba(47,107,255,0.22), transparent 60%), var(--panel);
+  box-shadow:0 50px 100px -50px rgba(0,0,0,.9); }
+.cta h2{ font-size:clamp(32px,5.4vw,60px); }
+.cta p{ margin:20px auto 0; max-width:50ch; color:var(--soft); }
+.cta .hero-cta{ justify-content:center; }
+
+/* footer */
+footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
+.foot{ display:flex; justify-content:space-between; gap:30px; flex-wrap:wrap; align-items:flex-start; }
+.foot .brand img{ height:26px; }
+.foot p{ font-size:13.5px; color:var(--dim); max-width:40ch; margin:14px 0 0; }
+.foot-links{ display:flex; gap:50px; flex-wrap:wrap; }
+.foot-col h5{ font-family:'JetBrains Mono'; font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--dim); margin:0 0 14px; font-weight:500; }
+.foot-col a{ display:block; color:var(--soft); text-decoration:none; font-size:14.5px; margin:9px 0;
+  transition:.2s; }
+.foot-col a:hover{ color:#fff; }
+.foot-bot{ margin-top:46px; padding-top:24px; border-top:1px solid var(--line);
+  display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  font-size:13px; color:var(--dim); }
+
+.honest{ font-family:'JetBrains Mono'; font-size:11px; color:var(--dim); letter-spacing:.03em;
+  margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="bg-fx"></div>
+<div class="grain"></div>
+
+<!-- ============ HEADER ============ -->
+<header id="hdr">
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="wm">Beta<b>Real</b></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#product">Product</a>
+      <a href="#proof">Traction</a>
+      <a href="#moat">The Moat</a>
+      <a href="#team">Team</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-primary" href="https://3darmenu.pages.dev" target="_blank" rel="noopener">
+        Live demo <span class="arr">→</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="kicker rv in">Tbilisi · WebAR menu platform</span>
+      <h1 class="rv in d1">Let guests <span class="gradtext">see the dish</span> on their table — before they order.</h1>
+      <p class="lead rv in d2">BetaReal turns real dishes into interactive 3D models diners can rotate, inspect, and place in Augmented Reality — right in the phone browser. No app. Just a QR code on the table.</p>
+      <div class="hero-cta rv in d3">
+        <a class="btn btn-primary" href="https://3darmenu.pages.dev" target="_blank" rel="noopener">Open the live menu <span class="arr">→</span></a>
+        <a class="btn btn-ghost" href="#how">How it works</a>
+      </div>
+      <div class="hero-meta rv in d4">
+        <div class="m"><b>0 apps</b><span>Runs in the browser</span></div>
+        <div class="div"></div>
+        <div class="m"><b>~3 sec</b><span>QR → 3D menu</span></div>
+        <div class="div"></div>
+        <div class="m"><b>2 languages</b><span>Georgian · English</span></div>
+      </div>
+    </div>
+
+    <div class="hero-stage rv in d2">
+      <div class="stage">
+        <div class="badge"><span class="dotpulse"></span> Live 3D · drag to rotate</div>
+        <model-viewer
+          src="https://pub-3c68559de18f4aee94d127e180937bdd.r2.dev/1780572481066_Druid4Final.glb"
+          alt="A real burger scanned into an interactive 3D model"
+          camera-controls
+          auto-rotate
+          auto-rotate-delay="0"
+          rotation-per-second="18deg"
+          interaction-prompt="none"
+          shadow-intensity="1.1"
+          shadow-softness="0.9"
+          exposure="1.05"
+          camera-orbit="35deg 78deg 105%"
+          min-camera-orbit="auto 0deg auto"
+          environment-image="neutral"
+          loading="eager">
+        </model-viewer>
+        <div class="hint">Real dish · scanned · optimized GLB</div>
+        <div class="float-chip fc1"><b>+20–26%</b><span>avg order value*</span></div>
+        <div class="float-chip fc2"><b>91%</b><span>more likely to order**</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- benchmark strip -->
+  <div class="strip">
+    <div class="wrap strip-in">
+      <span class="lab">The model is proven globally</span>
+      <div class="items">
+        <div class="it"><b>+20–26%</b><span>AOV uplift — QReal*</span></div>
+        <div class="it"><b>3.4×</b><span>more effective than verbal upsell*</span></div>
+        <div class="it"><b>800+</b><span>restaurants using WebAR menus*</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROBLEM ============ -->
+<section class="problem" id="problem">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">The problem</span>
+      <h2>Photos lie. Guests can't judge what they're really ordering.</h2>
+      <p class="lead">Static menu photos misrepresent portion size, layering, and presentation. Most "QR menus" today are just PDFs — no real innovation. Tourists struggle most with unfamiliar dishes. We surveyed real diners — the pain is near-universal.</p>
+    </div>
+    <div class="prob-grid">
+      <div class="stat-big rv d1">
+        <div class="n">100%</div>
+        <div class="t">have had a dish arrive looking different than expected — 74% said it bothered them.</div>
+        <div class="src">Source: BetaReal survey, n=23</div>
+      </div>
+      <div class="stat-big rv d2">
+        <div class="n">78%</div>
+        <div class="t">hesitate before ordering at least sometimes because they can't judge the real portion size.</div>
+        <div class="src">Source: BetaReal survey, n=23</div>
+      </div>
+      <div class="stat-big rv d3">
+        <div class="n">#1</div>
+        <div class="t">cited problem is portion size — followed by "food looks different from the photo."</div>
+        <div class="src">Source: BetaReal survey, n=23</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">How it works</span>
+      <h2>Scan. Inspect in 3D. Place it on your table.</h2>
+      <p class="lead">No download, no friction. The whole experience lives in the browser the guest already has open.</p>
+    </div>
+    <div class="steps rv d1">
+      <div class="step">
+        <span class="em">📲</span>
+        <div class="no">STEP 01</div>
+        <h3>Scan the QR code</h3>
+        <p>A code on the table opens the menu instantly — categories, prices, and a live 3D thumbnail of every dish. Nothing to install.</p>
+      </div>
+      <div class="step">
+        <span class="em">🔄</span>
+        <div class="no">STEP 02</div>
+        <h3>Inspect in 3D</h3>
+        <p>Tap any dish to rotate and zoom a photoreal model under realistic lighting. See the real layering and presentation, not a flattering photo.</p>
+      </div>
+      <div class="step">
+        <span class="em">🍔</span>
+        <div class="no">STEP 03</div>
+        <h3>Place it on your table</h3>
+        <p>Tap "View on table" and the dish appears in AR at true size on the real table — Android WebXR or iOS Quick Look, straight from the browser.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUCT ============ -->
+<section id="product">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">The product</span>
+      <h2>A complete WebAR menu platform — the restaurant does nothing technical.</h2>
+      <p class="lead">We scan, build, host, and maintain. Restaurants self-manage their menu, prices, and branding from an admin panel, and get behavioral analytics most QR menus never provide.</p>
+    </div>
+    <div class="grid3">
+      <div class="card rv d1"><div class="ic">🧊</div><h3>Interactive 3D + AR</h3><p>Rotate and zoom every dish, then place it on the real table. Android WebXR carousel + iOS ARKit Quick Look, no app install.</p></div>
+      <div class="card rv d2"><div class="ic">📊</div><h3>Full analytics funnel</h3><p>Session funnel, AR usage, per-item engagement, dwell time, and peak hours. Most QR menus hand the restaurant zero behavioral data.</p></div>
+      <div class="card rv d3"><div class="ic">🌐</div><h3>Bilingual, app-free</h3><p>Georgian and English with live switching, tuned for a tourism-heavy market. Loads in ~3 seconds from a QR scan.</p></div>
+      <div class="card rv d1"><div class="ic">🛠️</div><h3>Self-service admin</h3><p>Items, categories, prices, per-item AR scale, visibility, sort order, and thumbnails — edits go live instantly. No reprinting menus.</p></div>
+      <div class="card rv d2"><div class="ic">🎨</div><h3>White-label theming</h3><p>Day/night palettes, Google Fonts, and branding so each restaurant's menu matches its own identity.</p></div>
+      <div class="card rv d3"><div class="ic">⚡</div><h3>Lightweight & fast</h3><p>Static, CDN-served, offline-precached. 3D libraries load lazily so the menu never blocks on the AR engine.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GALLERY ============ -->
+<section id="gallery">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">Real dishes, really scanned</span>
+      <h2>Every model is a real dish from a real kitchen.</h2>
+      <p class="lead">Lightbox photoshoot → photogrammetry → Blender cleanup → optimized GLB. Drag any model below to inspect it the way a guest would.</p>
+    </div>
+    <div class="gal">
+      <div class="gal-item rv d1">
+        <model-viewer src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780057590342_hot_dog.glb"
+          alt="Hot dog 3D model" camera-controls auto-rotate rotation-per-second="20deg"
+          interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
+          loading="lazy" reveal="auto"></model-viewer>
+        <div class="cap"><b>Hot Dog</b><span>GLB · ~5.9 MB</span></div>
+      </div>
+      <div class="gal-item rv d2">
+        <model-viewer src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780058154105_donut.glb"
+          alt="Donut 3D model" camera-controls auto-rotate rotation-per-second="20deg"
+          interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
+          loading="lazy" reveal="auto"></model-viewer>
+        <div class="cap"><b>Donut</b><span>GLB · ~6.3 MB</span></div>
+      </div>
+      <div class="gal-item rv d3">
+        <model-viewer src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780056684195_croissant.glb"
+          alt="Croissant 3D model" camera-controls auto-rotate rotation-per-second="20deg"
+          interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
+          loading="lazy" reveal="auto"></model-viewer>
+        <div class="cap"><b>Croissant</b><span>GLB · ~8.2 MB</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROOF / TRACTION ============ -->
+<section id="proof">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">Validation</span>
+      <h2>The problem is real — and the value prop resonates.</h2>
+      <p class="lead">Early signal from a bilingual diner survey, plus a working MVP instrumented end-to-end. Honest stage: pre-revenue, MVP live, validation in progress.</p>
+    </div>
+    <div class="grid4">
+      <div class="card rv d1"><div class="ic">⭐</div><h3>4.3 / 5</h3><p>average rating for the "view on table" AR experience — 77% gave it 4–5★.</p></div>
+      <div class="card rv d2"><div class="ic">📈</div><h3>91%</h3><p>said seeing the dish in 3D made them more likely to order than a photo (43% "significantly").</p></div>
+      <div class="card rv d3"><div class="ic">🔁</div><h3>91%</h3><p>said it would change how they order vs a normal QR menu — 52% would try dishes they normally wouldn't.</p></div>
+      <div class="card rv d4"><div class="ic">🧪</div><h3>MVP live</h3><p>Three real AR render paths, self-service admin, and a full analytics funnel — built by the founders in ~1 month.</p></div>
+    </div>
+    <p class="honest rv">* Benchmark figures (AOV, upsell, 800+ restaurants) are reported by QReal/Kabaq, the global category leader — cited as proof the model works, not as BetaReal's own results.<br>** Survey figures are from BetaReal's early bilingual diner survey (n=23, warm sample) — directional, not conclusive. We are pre-revenue with no paying clients yet.</p>
+  </div>
+</section>
+
+<!-- ============ THE MOAT ============ -->
+<section class="moat" id="moat">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">The moat</span>
+      <h2>Every dish we scan trains the AI that makes the next one nearly free.</h2>
+      <p class="lead">Manual photogrammetry doesn't scale. The winner is whoever produces good 3D food models fastest and cheapest — so we're building that capability into a data flywheel we own.</p>
+    </div>
+    <div class="flywheel">
+      <div class="fw-steps">
+        <div class="fw-step rv d1"><span class="k">01</span><div><b>Land restaurants</b><p>Every onboarding is a paid service — and a data-collection event.</p></div></div>
+        <div class="fw-step rv d2"><span class="k">02</span><div><b>Capture (photos → 3D) pairs</b><p>Each dish produces a training pair: source photos mapped to a finished, optimized model.</p></div></div>
+        <div class="fw-step rv d3"><span class="k">03</span><div><b>Fine-tune image-to-3D AI</b><p>At ~3,000 quality models — enough to cover most of the Georgian market — we fine-tune an open-source model on rented GPUs.</p></div></div>
+        <div class="fw-step rv d4"><span class="k">04</span><div><b>Production cost collapses</b><p>Cheaper, faster models let us undercut and out-scale anyone doing this by hand → more clients → more data.</p></div></div>
+      </div>
+      <div class="fw-orbit rv d2">
+        <div class="orb a"></div><div class="orb b"></div><div class="orb c"></div><div class="orb d"></div>
+        <div class="fw-core">
+          <div class="n">~3,000</div>
+          <div class="l">models to cover the market</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BUSINESS MODEL ============ -->
+<section id="model">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">Business model</span>
+      <h2>B2B SaaS: onboarding + per-item production + monthly recurring.</h2>
+      <p class="lead">Full-service and recurring. High gross margin once a menu is built — and a production cost curve that bends down over time as the AI takes over scanning.</p>
+    </div>
+    <div class="tiers">
+      <div class="tier rv d1">
+        <h3>AR Menu</h3>
+        <div class="price">₾300<small>/mo</small></div>
+        <div class="muted" style="font-size:14px">5 AR items included</div>
+        <ul>
+          <li>Interactive 3D + AR menu</li>
+          <li>Self-service menu editing</li>
+          <li>QR, app-free, bilingual</li>
+        </ul>
+      </div>
+      <div class="tier feat rv d2">
+        <span class="tag">MOST COMPLETE</span>
+        <h3>Full</h3>
+        <div class="price">₾450<small>/mo</small></div>
+        <div class="muted" style="font-size:14px">5 AR items included</div>
+        <ul>
+          <li>Everything in AR Menu</li>
+          <li>Full analytics funnel</li>
+          <li>Theme &amp; branding editor</li>
+        </ul>
+      </div>
+      <div class="tier rv d3">
+        <h3>Premium</h3>
+        <div class="price">₾900<small>/mo</small></div>
+        <div class="muted" style="font-size:14px">Unlimited AR items</div>
+        <ul>
+          <li>Everything in Full</li>
+          <li>Strategy consultation</li>
+          <li>Custom models &amp; animations</li>
+        </ul>
+      </div>
+    </div>
+    <p class="pricing-note">₾500 one-time onboarding (includes the first 5 AR items) · extra items ₾50–70/mo · month-to-month, no lock-in · per-location pricing for chains. <span class="muted">≈ ₾100 = $37.</span></p>
+  </div>
+</section>
+
+<!-- ============ TEAM ============ -->
+<section id="team">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">The team</span>
+      <h2>Five founders. One month. A live product.</h2>
+      <p class="lead">Computer Science students at Ivane Javakhishvili Tbilisi State University, friends for 3+ years — software, WebAR, AI, 3D content, and business development under one roof.</p>
+    </div>
+    <div class="team-grid">
+      <div class="member rv d1"><div class="av">TT</div><b>Temo Tkeshelashvili</b><div class="role">CEO</div><p>Strategy, sales, WebAR dev, finance. TSU Higgs Cleverton accelerator winner.</p></div>
+      <div class="member rv d2"><div class="av">GT</div><b>George Tchitchinadze</b><div class="role">Platform / AI Infra</div><p>Web platform, data engineering, AI training infrastructure.</p></div>
+      <div class="member rv d3"><div class="av">NC</div><b>Nikoloz Chachua</b><div class="role">Sales / AI</div><p>Outreach, marketing, AI development &amp; model fine-tuning.</p></div>
+      <div class="member rv d4"><div class="av">IN</div><b>Ilia Nozadze</b><div class="role">3D / AR</div><p>Dish photoshoots, 3D asset creation, AR integration.</p></div>
+      <div class="member rv d4"><div class="av">DJ</div><b>Davit Jincharadze</b><div class="role">3D Optimization</div><p>Turning real dishes into optimized, interactive assets.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="cta">
+  <div class="wrap">
+    <div class="cta-card rv">
+      <span class="kicker" style="justify-content:center">Tbilisi → Georgia → international</span>
+      <h2 style="margin-top:18px">Building the largest WebAR food network in the region.</h2>
+      <p>First-mover in Georgia, benchmarked against the global leader, with a data moat that compounds with every dish. See it working on a real restaurant's menu.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://3darmenu.pages.dev" target="_blank" rel="noopener">Open the live demo <span class="arr">→</span></a>
+        <a class="btn btn-ghost" href="mailto:temotkesho82004@gmail.com">Talk to the team</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span><span class="wm">Beta<b>Real</b></span></a>
+        <p>WebAR menu platform for restaurants. We turn real dishes into interactive 3D you place on your table — no app, just a browser.</p>
+      </div>
+      <div class="foot-links">
+        <div class="foot-col">
+          <h5>Product</h5>
+          <a href="#how">How it works</a>
+          <a href="#product">Features</a>
+          <a href="https://3darmenu.pages.dev" target="_blank" rel="noopener">Live demo</a>
+        </div>
+        <div class="foot-col">
+          <h5>Company</h5>
+          <a href="#moat">The moat</a>
+          <a href="#team">Team</a>
+          <a href="#model">Pricing</a>
+        </div>
+        <div class="foot-col">
+          <h5>Contact</h5>
+          <a href="mailto:temotkesho82004@gmail.com">Email us</a>
+          <a href="https://3darmenu.pages.dev" target="_blank" rel="noopener">3darmenu.pages.dev</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bot">
+      <span>© 2026 BetaReal · Tbilisi, Georgia</span>
+      <span>Pre-revenue · MVP live · validation in progress</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // sticky header state
+  const hdr = document.getElementById('hdr');
+  const onScroll = () => hdr.classList.toggle('scrolled', window.scrollY > 12);
+  onScroll(); window.addEventListener('scroll', onScroll, {passive:true});
+
+  // scroll reveal
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.14, rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.rv:not(.in)').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
