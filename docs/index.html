@@ -594,7 +594,8 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
     </div>
     <div class="gal">
       <div class="gal-item rv d1">
-        <model-viewer src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780057590342_hot_dog.glb"
+        <model-viewer data-src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780057590342_hot_dog.glb"
+          poster="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/thumbnails/thumb_1780046740147.webp"
           alt="Hot dog 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
           camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
@@ -605,7 +606,8 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
         <div class="cap"><b>Hot Dog</b><span>GLB · ~5.9 MB</span></div>
       </div>
       <div class="gal-item rv d2">
-        <model-viewer src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780058154105_donut.glb"
+        <model-viewer data-src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780058154105_donut.glb"
+          poster="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/thumbnails/thumb_1780046956786.webp"
           alt="Donut 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
           camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
@@ -616,7 +618,8 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
         <div class="cap"><b>Donut</b><span>GLB · ~6.3 MB</span></div>
       </div>
       <div class="gal-item rv d3">
-        <model-viewer src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780056684195_croissant.glb"
+        <model-viewer data-src="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/models/1780056684195_croissant.glb"
+          poster="https://xctoxhaahxtcicfgnmme.supabase.co/storage/v1/object/public/thumbnails/thumb_1780046967707.webp"
           alt="Croissant 3D model" camera-controls auto-rotate rotation-per-second="20deg"
           interaction-prompt="none" shadow-intensity="1" exposure="1.05" environment-image="neutral"
           camera-orbit="0deg 82deg 120%" min-camera-orbit="auto 58deg 105%" max-camera-orbit="auto 91deg 150%"
@@ -813,6 +816,26 @@ footer{ border-top:1px solid var(--line); padding:50px 0 60px; }
     mv.addEventListener('load', sync);
     mv.addEventListener('ar-status', sync);
   });
+
+  // Load order: the hero burger is eager and loads first. The gallery models
+  // hold off (showing their thumbnail posters) until the hero has loaded, so the
+  // hero never competes for bandwidth/GPU and is guaranteed to appear first.
+  (function(){
+    const hero = document.querySelector('.stage model-viewer');
+    const gallery = document.querySelectorAll('.gal-item model-viewer[data-src]');
+    let started = false;
+    function startGallery(){
+      if(started) return; started = true;
+      gallery.forEach(mv=>{ if(mv.dataset.src) mv.src = mv.dataset.src; }); // lazy still defers until each is near the viewport
+    }
+    if(hero){
+      if(hero.loaded) startGallery();
+      else hero.addEventListener('load', startGallery, {once:true});
+      setTimeout(startGallery, 9000); // safety net if the hero is slow or fails
+    } else {
+      startGallery();
+    }
+  })();
 </script>
 </body>
 </html>
