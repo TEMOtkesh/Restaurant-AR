@@ -2,57 +2,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLang } from '@/lib/useLang'
-import type { Object3D, Mesh, MeshStandardMaterial } from 'three'
-import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
-
-// Convert a GLB File to a seated, scaled USDZ Blob entirely in the browser, using
-// the same three.js exporter model-viewer runs on-device — but ONCE, at upload
-// time, instead of on every iPhone tap. three is loaded lazily so it never weighs
-// down the rest of the admin panel.
-async function glbToUsdz(file: File, arScale: number): Promise<Blob> {
-  const [THREE, { GLTFLoader }, { USDZExporter }] = await Promise.all([
-    import('three'),
-    import('three/examples/jsm/loaders/GLTFLoader.js'),
-    import('three/examples/jsm/exporters/USDZExporter.js'),
-  ])
-  const buffer = await file.arrayBuffer()
-  const loader = new GLTFLoader()
-  const gltf = await new Promise<GLTF>((resolve, reject) =>
-    loader.parse(buffer, '', resolve, err => reject(err)),
-  )
-  const root = gltf.scene
-
-  // Quick Look renders metallic far shinier than the on-screen WebGL view; zero it
-  // so the iPhone model matches what people see in the menu.
-  root.traverse((n: Object3D) => {
-    const mesh = n as Mesh
-    if (!mesh.isMesh || !mesh.material) return
-    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-    mats.forEach(m => { const mat = m as MeshStandardMaterial; if ('metalness' in mat) mat.metalness = 0 })
-  })
-
-  // Bake ar_scale in, then seat the model so its bounding-box bottom sits at y=0.
-  // Quick Look drops the raw origin onto the surface, so centred models would sink
-  // halfway into the table without this.
-  //
-  // iPhone Quick Look plants models at true real-world size, which reads smaller than
-  // the auto-framed Android view. IOS_AR_BOOST scales the USDZ up so the iPhone AR size
-  // visually matches Android. Tune this one number if it's too big/small (re-upload to
-  // apply). Android is unaffected — it never uses the USDZ.
-  const IOS_AR_BOOST = 2.5
-  const scale = (arScale || 1.0) * IOS_AR_BOOST
-  root.scale.setScalar(scale)
-  root.updateMatrixWorld(true)
-  const box = new THREE.Box3().setFromObject(root)
-  if (isFinite(box.min.y)) {
-    root.position.y -= box.min.y
-    root.updateMatrixWorld(true)
-  }
-
-  const exporter = new USDZExporter()
-  const data = await exporter.parseAsync(root)
-  return new Blob([data as BlobPart], { type: 'model/vnd.usdz+zip' })
-}
 
 type Category = { id: number; name_en: string; name_ka: string; sort_order: number }
 type MenuItem = {
@@ -89,6 +38,9 @@ export default function MenuPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [usdzUploading, setUsdzUploading] = useState(false)
+  const [usdzProgress, setUsdzProgress] = useState('')
+  const usdzInputRef = useRef<HTMLInputElement>(null)
   const [thumbUploading, setThumbUploading] = useState(false)
   const [thumbProgress, setThumbProgress] = useState('')
   const thumbInputRef = useRef<HTMLInputElement>(null)
@@ -243,39 +195,47 @@ export default function MenuPage() {
       })
       if (!upload.ok) throw new Error(`R2 upload failed: ${upload.status}`)
 
-      setItemForm(f => ({ ...f, model: publicUrl, model_usdz: '' }))
+      // GLB upload only sets the model. The iPhone USDZ is now a separate, explicit
+      // upload (upload your own optimized .usdz) — we no longer auto-convert GLB → USDZ
+      // here, which produced large, uncompressed USDZ files via the three.js exporter.
+      setItemForm(f => ({ ...f, model: publicUrl }))
       setUploadProgress(`✓ ${file.name}`)
-
-      // Step 3: convert GLB → USDZ in the browser for iOS Quick Look. Non-blocking:
-      // the GLB is already saved above, so if conversion fails the menu still works
-      // (iOS just falls back to the on-device path, same as before this feature).
-      try {
-        setUploadProgress(`✓ ${file.name} — building iPhone AR…`)
-        const usdzBlob = await glbToUsdz(file, itemForm.ar_scale)
-        const usdzName = file.name.replace(/\.glb$/i, '.usdz')
-        const pres = await fetch('/api/r2-presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: usdzName }),
-        })
-        if (!pres.ok) throw new Error(`presign ${pres.status}`)
-        const { uploadUrl: usdzUrl, publicUrl: usdzPublic } = await pres.json()
-        const put = await fetch(usdzUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'model/vnd.usdz+zip' },
-          body: usdzBlob,
-        })
-        if (!put.ok) throw new Error(`R2 upload ${put.status}`)
-        setItemForm(f => ({ ...f, model_usdz: usdzPublic }))
-        setUploadProgress(`✓ ${file.name} (+ iPhone AR ✓)`)
-      } catch (e) {
-        console.warn('USDZ conversion skipped:', e)
-        setUploadProgress(`✓ ${file.name} (saved — iPhone AR conversion skipped)`)
-      }
     } catch (e) {
       setUploadProgress(`Upload failed: ${e instanceof Error ? e.message : String(e)}`)
     }
     setUploading(false)
+  }
+
+  async function uploadUSDZ(file: File) {
+    if (!file.name.toLowerCase().endsWith('.usdz')) {
+      setUsdzProgress('Only .usdz files are supported')
+      return
+    }
+    setUsdzUploading(true)
+    setUsdzProgress(T.uploading)
+    try {
+      const res = await fetch('/api/r2-presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `Server error ${res.status}`)
+      }
+      const { uploadUrl, publicUrl } = await res.json()
+      const upload = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'model/vnd.usdz+zip' },
+        body: file,
+      })
+      if (!upload.ok) throw new Error(`R2 upload failed: ${upload.status}`)
+      setItemForm(f => ({ ...f, model_usdz: publicUrl }))
+      setUsdzProgress(`✓ ${file.name}`)
+    } catch (e) {
+      setUsdzProgress(`Upload failed: ${e instanceof Error ? e.message : String(e)}`)
+    }
+    setUsdzUploading(false)
   }
 
   return (
@@ -455,6 +415,7 @@ export default function MenuPage() {
             </Field>
             <Field label={T.model3d} className="col-span-2">
               <div className="space-y-2">
+                <div className="text-xs" style={{ color: 'var(--dim)' }}>{T.glbCaption}</div>
                 <div className="flex gap-2">
                   <button type="button" disabled={uploading}
                           onClick={() => fileInputRef.current?.click()}
@@ -473,6 +434,36 @@ export default function MenuPage() {
                     : itemForm.model
                       ? <span>{T.current}<span style={{ color: 'var(--text)' }}>{itemForm.model.startsWith('http') ? itemForm.model.split('/').pop() : itemForm.model}</span></span>
                       : <span style={{ color: 'var(--dim)' }}>{T.noModel}</span>
+                  }
+                </div>
+
+                <div className="text-xs pt-1" style={{ color: 'var(--dim)' }}>{T.usdzCaption}</div>
+                <div className="flex gap-2 items-center">
+                  <button type="button" disabled={usdzUploading}
+                          onClick={() => usdzInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded text-xs font-medium"
+                          style={{ background: 'var(--card2)', color: 'var(--gold)',
+                                   border: '1px solid var(--border)', opacity: usdzUploading ? 0.5 : 1 }}>
+                    {usdzUploading ? T.uploading : T.uploadUsdz}
+                  </button>
+                  {itemForm.model_usdz && (
+                    <button type="button"
+                            onClick={() => { setItemForm(f => ({ ...f, model_usdz: '' })); setUsdzProgress('') }}
+                            className="px-3 py-1.5 rounded text-xs font-medium"
+                            style={{ background: 'rgba(224,82,82,0.1)', color: 'var(--danger)', border: '1px solid rgba(224,82,82,0.25)' }}>
+                      {T.clearUsdz}
+                    </button>
+                  )}
+                  <input ref={usdzInputRef} type="file" accept=".usdz" style={{ display: 'none' }}
+                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadUSDZ(f); e.target.value = '' }} />
+                </div>
+                <div className="text-xs px-2 py-1.5 rounded truncate"
+                     style={{ background: 'var(--card2)', color: 'var(--dim)', border: '1px solid var(--border)' }}>
+                  {usdzProgress
+                    ? <span style={{ color: usdzProgress.startsWith('✓') ? 'var(--success)' : 'var(--danger)' }}>{usdzProgress}</span>
+                    : itemForm.model_usdz
+                      ? <span>{T.current}<span style={{ color: 'var(--text)' }}>{itemForm.model_usdz.startsWith('http') ? itemForm.model_usdz.split('/').pop() : itemForm.model_usdz}</span></span>
+                      : <span style={{ color: 'var(--dim)' }}>{T.noUsdz}</span>
                   }
                 </div>
               </div>
