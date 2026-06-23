@@ -6,6 +6,9 @@ const en = {
   navAnalytics: 'Analytics',
   navMenu: 'Menu Editor',
   navTheme: 'Theme Editor',
+  navDev: 'Developer',
+  devTitle: 'Developer Analytics',
+  devDesc: 'Technical metrics & real device breakdown — team only',
   viewMenu: 'View Menu',
   signOut: 'Sign Out',
 
@@ -113,6 +116,9 @@ const ka: typeof en = {
   navAnalytics: 'ანალიტიკა',
   navMenu: 'მენიუს რედაქტორი',
   navTheme: 'თემის რედაქტორი',
+  navDev: 'დეველოპერი',
+  devTitle: 'დეველოპერ ანალიტიკა',
+  devDesc: 'ტექნიკური მეტრიკა და მოწყობილობების დაყოფა — მხოლოდ გუნდი',
   viewMenu: 'მენიუს ნახვა',
   signOut: 'გასვლა',
 

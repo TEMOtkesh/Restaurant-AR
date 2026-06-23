@@ -38,6 +38,7 @@ export default function Sidebar({ open, onClose }: Props) {
 
   const [lang, setLang] = useState<Lang>('en')
   const [dark, setDark] = useState(true)
+  const [isDev, setIsDev] = useState(false)
 
   useEffect(() => {
     const savedLang  = localStorage.getItem('bl-admin-lang')
@@ -49,11 +50,19 @@ export default function Sidebar({ open, onClose }: Props) {
     applyThemeVars(resolvedDark)
   }, [])
 
+  // Show the Developer tab only for team accounts (app_metadata.role === 'dev').
+  useEffect(() => {
+    createClient().auth.getUser()
+      .then(({ data }) => { setIsDev(data?.user?.app_metadata?.role === 'dev') })
+      .catch(() => {})
+  }, [])
+
   const T = translations[lang]
 
   const NAV = [
     { href: '/menu',      label: T.navMenu,      icon: '🍔' },
     { href: '/dashboard', label: T.navAnalytics, icon: '📊' },
+    ...(isDev ? [{ href: '/dev-analytics', label: T.navDev, icon: '🛠️' }] : []),
     { href: '/theme',     label: T.navTheme,     icon: '🎨' },
   ]
 
