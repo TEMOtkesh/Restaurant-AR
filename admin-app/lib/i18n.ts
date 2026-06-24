@@ -1,7 +1,7 @@
 export type Lang = 'en' | 'ka'
 
 const en = {
-  brandTitle: 'Burger Lions',
+  brandTitle: '3D AR Menu',
   brandSub: 'Admin',
   navAnalytics: 'Analytics',
   navMenu: 'Menu Editor',
@@ -111,7 +111,7 @@ const en = {
 }
 
 const ka: typeof en = {
-  brandTitle: 'ბურგერ ლომები',
+  brandTitle: '3D AR Menu',
   brandSub: 'ადმინი',
   navAnalytics: 'ანალიტიკა',
   navMenu: 'მენიუს რედაქტორი',

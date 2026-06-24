@@ -111,7 +111,7 @@ export default function Sidebar({ open, onClose }: Props) {
       >
         <div>
           <div className="font-bold text-base leading-tight" style={{ color: 'var(--gold)' }}>
-            🦁 {T.brandTitle}
+            {T.brandTitle}
           </div>
           <div className="text-xs mt-0.5" style={{ color: 'var(--dim)' }}>{T.brandSub}</div>
         </div>
