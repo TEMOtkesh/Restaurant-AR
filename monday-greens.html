@@ -96,6 +96,9 @@
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         button { touch-action: manipulation; }
+        /* Clip any horizontal overflow (e.g. the full-bleed hero's scrollbar-
+           width spill) at the root so there is never a right-side gap. */
+        html { overflow-x: hidden; }
 
         body {
             background: var(--bg);
@@ -167,13 +170,11 @@
               Monday Greens logo sits inside it, scroll reveals the menu. ── */
         .hero {
             position: relative;
-            /* Full-bleed without 100vw: 100vw includes the scrollbar width and
-               overflows ~15px past the content, leaving an ugly gap/strip on
-               the right. Stretch to the body's content box, then cancel its
-               16px gutter with negative margins — scrollbar-safe. */
-            align-self: stretch;
-            margin-left: -16px;
-            margin-right: -16px;
+            /* Full-bleed. 100vw + centring pull; any scrollbar-width overflow
+               is clipped by `html { overflow-x: hidden }` below so there's no
+               right-side gap or horizontal scroll. */
+            width: 100vw;
+            margin-left: calc(50% - 50vw);
             min-height: 100svh;
             display: flex;
             flex-direction: column;
@@ -217,7 +218,8 @@
         .hero-logo {
             position: relative;
             z-index: 2;
-            width: clamp(260px, 74vw, 540px);
+            width: clamp(240px, 74vw, 540px);
+            max-width: calc(100% - 48px);   /* never touch the edges, any device */
             height: auto;
             filter: drop-shadow(0 2px 9px rgba(0,0,0,0.6)) drop-shadow(0 10px 40px rgba(0,0,0,0.45));
             animation: hero-rise 0.9s cubic-bezier(0.2,0.7,0.2,1) both;
