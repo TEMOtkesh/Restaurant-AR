@@ -48,52 +48,50 @@
     <style>
         :root { --t: 0.22s ease; }
 
-        /* ── Monday Greens palette ──────────────────────────────────────
-           Brief colors: #5effe4 (mint) · #057d2b (forest) · white.
-           Two moods share one identity:
-             day   = "Monday morning garden" — forest-green ink on a
-                     mint-white paper, with #5effe4 read as greenhouse
-                     light (a wash from above), never a flat fill.
-             night = "greenhouse after dark" — mint glows on deep forest.
-           Buttons stay white-text-on-forest for AA contrast; the mint
-           lives in glows, dividers, and the active category pill halo. */
+        /* ── Monday Greens palette · OPTION B "creams & dreams" ─────────
+           A warmer identity to compare against Option A's cool teal:
+             day   = "cream patisserie" — sage-forest green ink on warm
+                     cream paper, antique gold as the highlight/glow.
+             night = "candlelit" — soft gold leads on a warm near-black.
+           Buttons stay high-contrast (white-on-green by day, dark-on-gold
+           by night); green anchors the brand, gold does the glow/halo. */
 
         [data-theme="night"] {
-            --bg:          #06171b;                 /* deep blue-teal night */
-            --bg2:         #0a252a;
-            --glow:        rgba(94,255,228,0.30);   /* #5effe4 mint light */
-            --glow2:       rgba(6,120,140,0.22);    /* cool blue accent light */
+            --bg:          #17140f;                 /* warm near-black */
+            --bg2:         #211b13;
+            --glow:        rgba(214,179,106,0.30);  /* antique-gold light */
+            --glow2:       rgba(43,107,63,0.16);    /* faint green accent */
             --shadow:      rgba(0,0,0,0.55);
-            --card:        #0e2226;
-            --card2:       #132e33;
-            --border:      rgba(94,255,228,0.18);
-            --text:        #eafffb;
-            --dim:         #7fa8a6;
-            --accent:      #5effe4;                 /* mint leads on dark */
-            --accent2:     #19c5a0;
-            --accent-text: #04231f;
-            --thumb-bg:    #051519;
-            --modal-bg:    #06171b;
-            --modal-rgb:   6,23,27;
+            --card:        #201b14;
+            --card2:       #2a2418;
+            --border:      rgba(214,179,106,0.20);
+            --text:        #f3ecdd;                 /* cream text */
+            --dim:         #b0a488;                 /* warm taupe */
+            --accent:      #d8b36a;                 /* soft gold leads on dark */
+            --accent2:     #c79a4f;
+            --accent-text: #1a1510;
+            --thumb-bg:    #14110b;
+            --modal-bg:    #17140f;
+            --modal-rgb:   23,20,15;
         }
 
         [data-theme="day"] {
-            --bg:          #daf0f3;                 /* blue-teal paper */
-            --bg2:         #bfe7ec;                 /* deeper blue-teal */
-            --glow:        rgba(94,255,228,0.90);   /* #5effe4 — richer, less washed */
-            --glow2:       rgba(6,140,150,0.18);    /* cool teal-blue accent light */
-            --shadow:      rgba(6,58,66,0.18);
-            --card:        #ffffff;
-            --card2:       #ecf8f8;
-            --border:      rgba(5,110,70,0.18);
-            --text:        #0c2a2b;                 /* deep blue-green ink */
-            --dim:         #52797a;                 /* teal sage */
-            --accent:      #057d2b;                 /* forest green */
-            --accent2:     #046b25;
+            --bg:          #f4ecdd;                 /* warm cream paper */
+            --bg2:         #e9dcc4;                 /* deeper cream */
+            --glow:        rgba(201,164,92,0.48);   /* antique-gold light */
+            --glow2:       rgba(43,107,63,0.12);
+            --shadow:      rgba(92,70,32,0.16);
+            --card:        #fffdf7;                 /* warm white */
+            --card2:       #f6eed9;
+            --border:      rgba(43,107,63,0.18);
+            --text:        #253320;                 /* deep olive ink */
+            --dim:         #7b7156;                 /* taupe */
+            --accent:      #2b6b3f;                 /* sage-forest green */
+            --accent2:     #245a34;
             --accent-text: #ffffff;
-            --thumb-bg:    #e4f4f4;
-            --modal-bg:    #daf0f3;
-            --modal-rgb:   218,240,243;
+            --thumb-bg:    #f0e7d1;
+            --modal-bg:    #f4ecdd;
+            --modal-rgb:   244,236,221;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
