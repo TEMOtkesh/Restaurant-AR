@@ -201,6 +201,14 @@
                 radial-gradient(66% 40% at 50% 46%, rgba(0,0,0,0.40) 0%, transparent 70%),
                 linear-gradient(to bottom, rgba(0,0,0,0.16) 0%, transparent 20%, transparent 68%, var(--bg) 100%);
         }
+        /* Light themes: fading to a light --bg reads as a milky wash over the
+           photo. Drop it — keep only a slim seam blend at the very bottom and
+           a gentler legibility pool behind the logo. Dark theme is untouched. */
+        [data-theme="day"] .hero-veil {
+            background:
+                radial-gradient(62% 36% at 50% 46%, rgba(0,0,0,0.28) 0%, transparent 72%),
+                linear-gradient(to bottom, transparent 90%, var(--bg) 100%);
+        }
         .hero-logo {
             position: relative;
             z-index: 2;
