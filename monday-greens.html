@@ -169,8 +169,13 @@
               Monday Greens logo sits inside it, scroll reveals the menu. ── */
         .hero {
             position: relative;
-            width: 100vw;
-            margin-left: calc(50% - 50vw);   /* break out of body's 16px gutter */
+            /* Full-bleed without 100vw: 100vw includes the scrollbar width and
+               overflows ~15px past the content, leaving an ugly gap/strip on
+               the right. Stretch to the body's content box, then cancel its
+               16px gutter with negative margins — scrollbar-safe. */
+            align-self: stretch;
+            margin-left: -16px;
+            margin-right: -16px;
             min-height: 100svh;
             display: flex;
             flex-direction: column;
