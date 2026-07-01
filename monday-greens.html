@@ -1185,7 +1185,9 @@
 
         /* ── Responsive: desktop grid layout ── */
         @media (min-width: 640px) {
-            body { padding: 0 32px 64px; }
+            /* No horizontal padding here either — the hero must stay full-bleed
+               on desktop. The menu sections keep their own 16px gutter. */
+            body { padding: 0 0 64px; }
 
             .header, .cat-filter { max-width: 880px; }
             .cat-filter { justify-content: center; }
