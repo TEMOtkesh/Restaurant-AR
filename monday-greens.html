@@ -105,7 +105,10 @@
             color: var(--text);
             font-family: 'Nunito', sans-serif;
             min-height: 100vh;
-            padding: 0 16px 48px;
+            /* No horizontal padding on the body: the hero can then fill 100%
+               (truly edge-to-edge, no 100vw/scrollbar math). The 16px reading
+               gutter lives on the menu sections instead. */
+            padding: 0 0 48px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -170,11 +173,10 @@
               Monday Greens logo sits inside it, scroll reveals the menu. ── */
         .hero {
             position: relative;
-            /* Full-bleed. 100vw + centring pull; any scrollbar-width overflow
-               is clipped by `html { overflow-x: hidden }` below so there's no
-               right-side gap or horizontal scroll. */
-            width: 100vw;
-            margin-left: calc(50% - 50vw);
+            /* Body has no side padding, so 100% == the full content width
+               (viewport minus any scrollbar). Genuinely edge-to-edge with no
+               vw/scrollbar math and nothing to clip. */
+            width: 100%;
             min-height: 100svh;
             display: flex;
             flex-direction: column;
@@ -258,10 +260,10 @@
         /* Green (day) / cream (night) logo lockup at the top of the menu. */
         .menu-top {
             width: 100%;
-            max-width: 450px;
+            max-width: 482px;   /* 450 content + 2×16 gutter */
             display: flex;
             justify-content: center;
-            padding: 40px 0 22px;
+            padding: 40px 16px 22px;
             scroll-margin-top: 8px;
         }
         .menu-logo { width: min(240px, 62vw); height: auto; }
@@ -296,7 +298,8 @@
 
         .menu-list {
             width: 100%;
-            max-width: 450px;
+            max-width: 482px;   /* 450 content + 2×16 gutter */
+            padding: 0 16px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -484,7 +487,7 @@
         /* ── Footer ── */
         .site-footer {
             width: 100%;
-            max-width: 450px;
+            max-width: 482px;   /* 450 content + 2×16 gutter */
             margin-top: 48px;
             padding: 28px 16px 8px;
             border-top: 1px solid var(--border);
@@ -886,11 +889,11 @@
         /* ── Category filter bar ── */
         .cat-filter {
             width: 100%;
-            max-width: 450px;
+            max-width: 482px;   /* 450 content + 2×16 gutter */
+            padding: 0 16px 4px;
             display: flex;
             gap: 8px;
             overflow-x: auto;
-            padding: 0 0 4px;
             scrollbar-width: none;
             -webkit-overflow-scrolling: touch;
         }
