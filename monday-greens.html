@@ -2476,6 +2476,45 @@
             applyTheme(_to);
         });
 
+        // ── Live theme playground overrides ────────────────────────────
+        // The standalone editor (monday-greens-theme.html) lets us test any
+        // colours + logos on top of this branch's palette. The store is:
+        //   { day:{'--bg':'#..',…}, night:{…}, logos:{hero,menuDay,menuNight} }
+        // kept in localStorage (shared same-origin with the editor) and pushed
+        // live via postMessage. Colours inject a <style> that wins over the
+        // base [data-theme] rules by order; logos swap the <img> src. Purely
+        // additive + local — no effect on the live Burger Lions site.
+        function applyMgColors(ov) {
+            let css = '';
+            ['day', 'night'].forEach(theme => {
+                const o = ov && ov[theme];
+                if (!o) return;
+                css += `[data-theme="${theme}"]{`;
+                Object.entries(o).forEach(([k, v]) => { if (v) css += `${k}:${v};`; });
+                css += '}';
+            });
+            let el = document.getElementById('mg-overrides');
+            if (!el) { el = document.createElement('style'); el.id = 'mg-overrides'; document.head.appendChild(el); }
+            el.textContent = css;
+        }
+        function applyMgLogos(logos) {
+            if (!logos) return;
+            const map = { hero: '.hero-logo', menuDay: '.menu-logo-green', menuNight: '.menu-logo-cream' };
+            Object.entries(map).forEach(([k, sel]) => {
+                if (logos[k]) { const el = document.querySelector(sel); if (el) el.src = logos[k]; }
+            });
+        }
+        function applyMgStore(store) { if (!store) return; applyMgColors(store); applyMgLogos(store.logos); }
+        try {
+            const _raw = localStorage.getItem('mg-theme-overrides');
+            if (_raw) applyMgStore(JSON.parse(_raw));
+        } catch (_) {}
+        window.addEventListener('message', e => {
+            if (!e.data || e.data.type !== 'mg-theme') return;
+            if (e.data.previewTheme) applyTheme(e.data.previewTheme);
+            applyMgStore(e.data.store);
+        });
+
         // ── XR session state ───────────────────────────────────────────
         document.addEventListener('xr-session-start', () => {
             _arStartTime = Date.now();
